@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -X POST http://localhost:3001/api/jobs -H 'Content-Type: application/json' -d '{\"clinic\":\"中央歯科\",\"patient\":\"山田太郎\",\"setDate\":\"2026-04-27\",\"setTime\":\"14:00\"}')",
+      "Bash(curl -s http://localhost:3001/api/jobs)",
+      "Bash(python3 -m json.tool)",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(node server.js)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('OK:', d.get\\('setTime'\\)\\)\")",
+      "PowerShell(Stop-Process *)",
+      "Bash(npx vite *)"
+    ]
+  }
+}
