@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -n \"server,vite\" -c \"cyan,blue\" \"node server.js\" \"vite\"",
-    "build": "./node_modules/.bin/vite build",
+    "build": "node node_modules/vite/bin/vite.js build",
     "start": "node server.js"
   },
   "dependencies": {
