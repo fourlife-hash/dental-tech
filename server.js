@@ -4,10 +4,11 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const DATA_FILE = path.join(__dirname, 'data.json');
 
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'dist')));
 
 function readData() {
   try {
@@ -100,6 +101,10 @@ app.delete('/api/jobs/:id', (req, res) => {
   data.jobs.splice(idx, 1);
   writeData(data);
   res.status(204).end();
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(PORT, () => {
