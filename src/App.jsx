@@ -124,7 +124,7 @@ export default function App() {
         </div>
       ) : (
         <div className="dn-page">
-          <DeliveryNote jobs={jobs} />
+          <DeliveryNote />
         </div>
       )}
 

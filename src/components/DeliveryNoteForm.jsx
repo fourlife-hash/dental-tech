@@ -35,7 +35,7 @@ function makeRow(overrides = {}) {
   };
 }
 
-export default function DeliveryNoteForm({ jobs, onSaved }) {
+export default function DeliveryNoteForm({ onSaved }) {
   const [clinics, setClinics]         = useState([]);
   const [products, setProducts]       = useState([]);
   const [prices, setPrices]           = useState([]);
@@ -70,23 +70,24 @@ export default function DeliveryNoteForm({ jobs, onSaved }) {
     if (name && deliveryDate) populateFromJobs(name, deliveryDate, newPrices);
   }
 
-  function handleDateChange(newDate) {
+  async function handleDateChange(newDate) {
     setDeliveryDate(newDate);
-    if (clinicName && newDate) populateFromJobs(clinicName, newDate, prices);
+    if (clinicName && newDate) await populateFromJobs(clinicName, newDate, prices);
   }
 
-  function populateFromJobs(cName, date, priceList) {
-    const matched = jobs.filter(j => j.clinic === cName && j.setDate === date && j.done);
+  async function populateFromJobs(cName, date, priceList) {
+    const qs = new URLSearchParams({ clinic: cName, date, done: 'true' });
+    const matched = await fetch(`/api/jobs?${qs}`).then(r => r.json());
     if (matched.length > 0) {
       setRows(matched.map(j => {
         const prod       = products.find(p => p.name === j.gikobutsu);
         const priceEntry = prod ? priceList.find(pr => pr.productId === prod.id) : null;
         return makeRow({
-          patientName:  j.patient,
-          shiki:        j.shiki || '',
+          patientName:   j.patient,
+          shiki:         j.shiki || '',
           gikobutsuName: j.gikobutsu || '',
-          category:     prod ? (CAT_MAP[prod.category] || '') : '',
-          unitPrice:    priceEntry?.price || 0,
+          category:      prod ? (CAT_MAP[prod.category] || '') : '',
+          unitPrice:     priceEntry?.price || 0,
         });
       }));
     } else {

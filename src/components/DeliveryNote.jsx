@@ -3,7 +3,7 @@ import DeliveryNoteForm from './DeliveryNoteForm.jsx';
 import DeliveryNoteList from './DeliveryNoteList.jsx';
 import { fetchDeliveryNotes } from '../api.js';
 
-export default function DeliveryNote({ jobs }) {
+export default function DeliveryNote() {
   const [subTab, setSubTab] = useState('new');
   const [notes, setNotes]   = useState([]);
 
@@ -28,7 +28,7 @@ export default function DeliveryNote({ jobs }) {
       </div>
 
       {subTab === 'new' ? (
-        <DeliveryNoteForm jobs={jobs} onSaved={loadNotes} />
+        <DeliveryNoteForm onSaved={loadNotes} />
       ) : (
         <DeliveryNoteList notes={notes} onReload={loadNotes} />
       )}
