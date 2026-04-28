@@ -4,6 +4,7 @@ import JobList from './components/JobList.jsx';
 import AddJobForm from './components/AddJobForm.jsx';
 import TodayPanel from './components/TodayPanel.jsx';
 import EditModal from './components/EditModal.jsx';
+import DeliveryNote from './components/DeliveryNote.jsx';
 import { fetchJobs, createJob, patchDone, removeJob, updateJob } from './api.js';
 
 function localStr(d) {
@@ -18,11 +19,12 @@ function jobDateKey(job, mode) {
 }
 
 export default function App() {
-  const [jobs, setJobs]               = useState([]);
-  const [mode, setMode]               = useState('set');   // 'set' | 'make'
+  const [jobs, setJobs]                 = useState([]);
+  const [mode, setMode]                 = useState('set');
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [editingJob, setEditingJob]   = useState(null);
+  const [editingJob, setEditingJob]     = useState(null);
+  const [activeTab, setActiveTab]       = useState('jobs'); // 'jobs' | 'delivery'
 
   const loadJobs = useCallback(async () => {
     try {
@@ -73,42 +75,58 @@ export default function App() {
   return (
     <>
       <header className="app-header">
-        <h1>歯科技工所 指示書管理</h1>
+        <h1>歯科技工所管理</h1>
+        <nav className="main-nav">
+          <button
+            className={`main-nav-btn${activeTab === 'jobs' ? ' active' : ''}`}
+            onClick={() => setActiveTab('jobs')}
+          >指示書</button>
+          <button
+            className={`main-nav-btn${activeTab === 'delivery' ? ' active' : ''}`}
+            onClick={() => setActiveTab('delivery')}
+          >納品書</button>
+        </nav>
         <span className="header-sub">全{jobs.length}件 / 済{jobs.filter(j=>j.done).length}件</span>
       </header>
 
-      <div className="app-body">
-        <div className="col-left">
-          <Calendar
-            jobs={jobs}
-            mode={mode}
-            currentMonth={currentMonth}
-            selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
-            onChangeMonth={setCurrentMonth}
-            onToggleMode={() => setMode(m => m === 'set' ? 'make' : 'set')}
-          />
-
-          {selectedDate && (
-            <JobList
-              date={selectedDate}
-              jobs={selectedJobs}
+      {activeTab === 'jobs' ? (
+        <div className="app-body">
+          <div className="col-left">
+            <Calendar
+              jobs={jobs}
               mode={mode}
-              onToggleDone={handleToggleDone}
-              onDelete={handleDelete}
-              onEdit={setEditingJob}
-              onUpdate={handleFieldUpdate}
-              onClose={() => setSelectedDate(null)}
+              currentMonth={currentMonth}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              onChangeMonth={setCurrentMonth}
+              onToggleMode={() => setMode(m => m === 'set' ? 'make' : 'set')}
             />
-          )}
-        </div>
 
-        <div className="col-right">
-          <AddJobForm onAdd={handleAdd} />
-        </div>
+            {selectedDate && (
+              <JobList
+                date={selectedDate}
+                jobs={selectedJobs}
+                mode={mode}
+                onToggleDone={handleToggleDone}
+                onDelete={handleDelete}
+                onEdit={setEditingJob}
+                onUpdate={handleFieldUpdate}
+                onClose={() => setSelectedDate(null)}
+              />
+            )}
+          </div>
 
-        <TodayPanel jobs={jobs} onToggleDone={handleToggleDone} onEdit={setEditingJob} onUpdate={handleFieldUpdate} />
-      </div>
+          <div className="col-right">
+            <AddJobForm onAdd={handleAdd} />
+          </div>
+
+          <TodayPanel jobs={jobs} onToggleDone={handleToggleDone} onEdit={setEditingJob} onUpdate={handleFieldUpdate} />
+        </div>
+      ) : (
+        <div className="dn-page">
+          <DeliveryNote jobs={jobs} />
+        </div>
+      )}
 
       {editingJob && (
         <EditModal

@@ -143,6 +143,24 @@ async function initDb() {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS delivery_notes (
+      id                TEXT PRIMARY KEY,
+      delivery_no       TEXT NOT NULL UNIQUE,
+      clinic_id         TEXT,
+      clinic_name       TEXT NOT NULL,
+      delivery_date     TEXT NOT NULL,
+      rows              JSONB NOT NULL DEFAULT '[]',
+      para_gram         NUMERIC NOT NULL DEFAULT 0,
+      miro_gram         NUMERIC NOT NULL DEFAULT 0,
+      subtotal_giko     INTEGER NOT NULL DEFAULT 0,
+      subtotal_material INTEGER NOT NULL DEFAULT 0,
+      tax               INTEGER NOT NULL DEFAULT 0,
+      total             INTEGER NOT NULL DEFAULT 0,
+      created_at        TEXT NOT NULL
+    )
+  `);
+
   // 初回のみシード（clinicsが空なら全テーブルに初期データを投入）
   const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM clinics');
   if (rows[0].cnt === 0) {
@@ -201,6 +219,24 @@ function productFromRow(r) {
 
 function priceFromRow(r) {
   return { clinicId: r.clinic_id, productId: r.product_id, price: r.price };
+}
+
+function deliveryNoteFromRow(r) {
+  return {
+    id:               r.id,
+    deliveryNo:       r.delivery_no,
+    clinicId:         r.clinic_id,
+    clinicName:       r.clinic_name,
+    deliveryDate:     r.delivery_date,
+    rows:             Array.isArray(r.rows) ? r.rows : JSON.parse(r.rows || '[]'),
+    paraGram:         parseFloat(r.para_gram) || 0,
+    miroGram:         parseFloat(r.miro_gram) || 0,
+    subtotalGiko:     parseInt(r.subtotal_giko)     || 0,
+    subtotalMaterial: parseInt(r.subtotal_material) || 0,
+    tax:              parseInt(r.tax)               || 0,
+    total:            parseInt(r.total)             || 0,
+    createdAt:        r.created_at,
+  };
 }
 
 // ─── Jobs API ────────────────────────────────────────────────────────────────
@@ -346,6 +382,64 @@ app.post('/api/prices', async (req, res) => {
       [clinicId, productId, price]
     );
     res.json({ clinicId, productId, price });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+// ─── Delivery Notes API ──────────────────────────────────────────────────────
+
+app.get('/api/delivery-notes', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM delivery_notes ORDER BY delivery_no DESC');
+    res.json(rows.map(deliveryNoteFromRow));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+app.get('/api/delivery-notes/:id', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM delivery_notes WHERE id=$1', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: '納品書が見つかりません' });
+    res.json(deliveryNoteFromRow(rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+app.post('/api/delivery-notes', async (req, res) => {
+  const { clinicId, clinicName, deliveryDate, rows, paraGram, miroGram,
+          subtotalGiko, subtotalMaterial, tax, total } = req.body;
+  if (!clinicName || !deliveryDate) {
+    return res.status(400).json({ error: '必須項目が不足しています' });
+  }
+  try {
+    const { rows: seq } = await pool.query(
+      "SELECT COALESCE(MAX(delivery_no::integer), 0) + 1 AS next_no FROM delivery_notes"
+    );
+    const deliveryNo = String(seq[0].next_no).padStart(6, '0');
+    const id        = uuidv4();
+    const createdAt = new Date().toISOString();
+
+    await pool.query(
+      `INSERT INTO delivery_notes
+         (id, delivery_no, clinic_id, clinic_name, delivery_date,
+          rows, para_gram, miro_gram, subtotal_giko, subtotal_material, tax, total, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+      [
+        id, deliveryNo, clinicId || null, clinicName, deliveryDate,
+        JSON.stringify(rows || []),
+        paraGram || 0, miroGram || 0,
+        subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
+        createdAt,
+      ]
+    );
+    const { rows: saved } = await pool.query('SELECT * FROM delivery_notes WHERE id=$1', [id]);
+    res.status(201).json(deliveryNoteFromRow(saved[0]));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DBエラー' });

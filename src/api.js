@@ -44,3 +44,19 @@ export async function removeJob(id) {
   const res = await fetch(`${BASE}/jobs/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('delete failed');
 }
+
+export async function fetchDeliveryNotes() {
+  const res = await fetch(`${BASE}/delivery-notes`);
+  if (!res.ok) throw new Error('fetch failed');
+  return res.json();
+}
+
+export async function createDeliveryNote(data) {
+  const res = await fetch(`${BASE}/delivery-notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('create failed');
+  return res.json();
+}
