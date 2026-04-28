@@ -107,6 +107,47 @@ app.delete('/api/jobs/:id', (req, res) => {
   res.status(204).end();
 });
 
+// GET /api/clinics
+app.get('/api/clinics', (req, res) => {
+  const data = readData();
+  res.json(data.clinics || []);
+});
+
+// GET /api/products
+app.get('/api/products', (req, res) => {
+  const data = readData();
+  res.json(data.products || []);
+});
+
+// GET /api/prices/:clinicId
+app.get('/api/prices/:clinicId', (req, res) => {
+  const { clinicId } = req.params;
+  const data = readData();
+  const prices = (data.prices || []).filter(p => p.clinicId === clinicId);
+  res.json(prices);
+});
+
+// POST /api/prices （追加・更新）
+app.post('/api/prices', (req, res) => {
+  const { clinicId, productId, price } = req.body;
+  if (!clinicId || !productId || price == null) {
+    return res.status(400).json({ error: '必須項目が不足しています' });
+  }
+
+  const data = readData();
+  if (!data.prices) data.prices = [];
+
+  const existing = data.prices.find(p => p.clinicId === clinicId && p.productId === productId);
+  if (existing) {
+    existing.price = price;
+  } else {
+    data.prices.push({ clinicId, productId, price });
+  }
+
+  writeData(data);
+  res.json({ clinicId, productId, price });
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });

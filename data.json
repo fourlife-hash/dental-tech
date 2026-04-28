@@ -333,5 +333,144 @@
       "done": false,
       "createdAt": "2026-04-26T18:47:38.308Z"
     }
+  ],
+  "clinics": [
+    {
+      "id": "c1",
+      "name": "吉岡歯科医院",
+      "shortName": "吉岡",
+      "closingDay": 20
+    },
+    {
+      "id": "c2",
+      "name": "くいなばしデンタルクリニック",
+      "shortName": "くいなばし",
+      "closingDay": 20
+    },
+    {
+      "id": "c3",
+      "name": "織田歯科医院",
+      "shortName": "織田",
+      "closingDay": 20
+    },
+    {
+      "id": "c4",
+      "name": "三村歯科医院",
+      "shortName": "三村",
+      "closingDay": 20
+    },
+    {
+      "id": "c5",
+      "name": "田伏歯科医院",
+      "shortName": "田伏",
+      "closingDay": 20
+    },
+    {
+      "id": "c6",
+      "name": "クロイ歯科医院",
+      "shortName": "クロイ",
+      "closingDay": 20
+    },
+    {
+      "id": "c7",
+      "name": "きむら歯科医院",
+      "shortName": "きむら",
+      "closingDay": 20
+    },
+    {
+      "id": "c8",
+      "name": "高尾歯科医院",
+      "shortName": "高尾",
+      "closingDay": 20
+    }
+  ],
+  "products": [
+    {
+      "id": "p001",
+      "code": "001",
+      "name": "前装冠（1本）",
+      "category": "保険技工"
+    },
+    {
+      "id": "p002",
+      "code": "002",
+      "name": "前装冠（2本ブリッジ）",
+      "category": "保険技工"
+    },
+    {
+      "id": "p003",
+      "code": "003",
+      "name": "前装冠（3本ブリッジ）",
+      "category": "保険技工"
+    },
+    {
+      "id": "p004",
+      "code": "004",
+      "name": "CAD/CAM冠（1本）",
+      "category": "保険技工"
+    },
+    {
+      "id": "p005",
+      "code": "005",
+      "name": "金属冠（1本）",
+      "category": "保険技工"
+    },
+    {
+      "id": "p006",
+      "code": "006",
+      "name": "部分床義歯（片顎）",
+      "category": "保険技工"
+    },
+    {
+      "id": "p007",
+      "code": "007",
+      "name": "総義歯（片顎）",
+      "category": "保険技工"
+    },
+    {
+      "id": "p008",
+      "code": "008",
+      "name": "ジルコニアクラウン",
+      "category": "自費技工"
+    },
+    {
+      "id": "p009",
+      "code": "009",
+      "name": "セラミッククラウン（e.max）",
+      "category": "自費技工"
+    },
+    {
+      "id": "p010",
+      "code": "010",
+      "name": "石膏模型",
+      "category": "材料"
+    },
+    {
+      "id": "p011",
+      "code": "011",
+      "name": "ロウ型",
+      "category": "材料"
+    },
+    {
+      "id": "p012",
+      "code": "012",
+      "name": "預かり",
+      "category": "預かり"
+    }
+  ],
+  "prices": [
+    { "clinicId": "c1", "productId": "p001", "price": 6390 },
+    { "clinicId": "c1", "productId": "p005", "price": 4000 },
+    { "clinicId": "c1", "productId": "p007", "price": 31800 },
+    { "clinicId": "c2", "productId": "p001", "price": 5000 },
+    { "clinicId": "c2", "productId": "p004", "price": 14500 },
+    { "clinicId": "c2", "productId": "p008", "price": 44000 },
+    { "clinicId": "c4", "productId": "p004", "price": 8400 },
+    { "clinicId": "c5", "productId": "p001", "price": 5250 },
+    { "clinicId": "c5", "productId": "p004", "price": 8400 },
+    { "clinicId": "c5", "productId": "p006", "price": 10400 },
+    { "clinicId": "c6", "productId": "p001", "price": 4000 },
+    { "clinicId": "c7", "productId": "p001", "price": 4000 },
+    { "clinicId": "c8", "productId": "p001", "price": 5000 }
   ]
 }
