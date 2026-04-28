@@ -30,7 +30,7 @@ app.get('/api/jobs', (req, res) => {
 
 // POST /api/jobs
 app.post('/api/jobs', (req, res) => {
-  const { clinic, patient, setDate, setTime } = req.body;
+  const { clinic, patient, setDate, setTime, shiki, gikobutsu } = req.body;
   if (!clinic || !patient || !setDate || !setTime) {
     return res.status(400).json({ error: '必須項目が不足しています' });
   }
@@ -50,6 +50,8 @@ app.post('/api/jobs', (req, res) => {
     patient,
     setDate,
     setTime,
+    shiki: shiki || '',
+    gikobutsu: gikobutsu || '',
     done: false,
     createdAt: new Date().toISOString(),
   };
@@ -62,16 +64,18 @@ app.post('/api/jobs', (req, res) => {
 // PATCH /api/jobs/:id (update job fields)
 app.patch('/api/jobs/:id', (req, res) => {
   const { id } = req.params;
-  const { clinic, patient, setDate, setTime } = req.body;
+  const { clinic, patient, setDate, setTime, shiki, gikobutsu } = req.body;
 
   const data = readData();
   const job = data.jobs.find(j => j.id === id);
   if (!job) return res.status(404).json({ error: '案件が見つかりません' });
 
-  if (clinic  != null) job.clinic  = clinic;
-  if (patient != null) job.patient = patient;
-  if (setDate != null) job.setDate = setDate;
-  if (setTime != null) job.setTime = setTime;
+  if (clinic     != null) job.clinic     = clinic;
+  if (patient    != null) job.patient    = patient;
+  if (setDate    != null) job.setDate    = setDate;
+  if (setTime    != null) job.setTime    = setTime;
+  if (shiki      != null) job.shiki      = shiki;
+  if (gikobutsu  != null) job.gikobutsu  = gikobutsu;
 
   writeData(data);
   res.json(job);

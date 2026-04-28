@@ -174,7 +174,7 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
 .job-ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
 .job-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.6rem;
   padding: 0.55rem 0.75rem;
   border-radius: 7px;
@@ -190,11 +190,58 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
   accent-color: #16a34a;
   flex-shrink: 0;
   cursor: pointer;
+  margin-top: 0.2rem;
 }
-.job-info { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.job-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .job-clinic { font-weight: 700; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.job-patient { font-size: 0.82rem; color: #475569; }
+.job-patient { font-size: 0.82rem; color: #475569; white-space: nowrap; flex-shrink: 0; }
 .job-time { font-size: 0.75rem; color: #94a3b8; }
+
+/* ─── Patient row (shiki / gikobutsu / buttons) ─── */
+.patient-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.shiki-input {
+  field-sizing: content;
+  min-width: 3rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.8rem;
+  color: #1e293b;
+  background: #fff;
+}
+.shiki-input:focus { outline: 2px solid #2563eb; border-color: transparent; }
+.gikobutsu-input {
+  min-width: 5rem;
+  flex: 1 1 5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.8rem;
+  color: #1e293b;
+  background: #fff;
+}
+.gikobutsu-input:focus { outline: 2px solid #2563eb; border-color: transparent; }
+.giko-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+.giko-btn {
+  padding: 0.1rem 0.35rem;
+  border: 1px solid #94a3b8;
+  border-radius: 4px;
+  background: #f8fafc;
+  font-size: 0.7rem;
+  color: #374151;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.giko-btn:hover { background: #dbeafe; border-color: #93c5fd; color: #1d4ed8; }
 .edit-btn {
   padding: 0.2rem 0.5rem;
   border: 1px solid #93c5fd;

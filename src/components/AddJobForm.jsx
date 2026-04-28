@@ -1,13 +1,13 @@
 import { useState } from 'react';
 
-const DENTAL_RE = /\[DENTAL:([^|\]]+)\|([^|\]]+)\|(\d{4}-\d{2}-\d{2})\|(\d{2}:\d{2})\]/g;
+const DENTAL_RE = /\[DENTAL:([^|\]]+)\|([^|\]]+)\|(\d{4}-\d{2}-\d{2})\|(\d{2}:\d{2})(?:\|([^|\]]*))?\]/g;
 
 function parseDental(text) {
   const results = [];
   DENTAL_RE.lastIndex = 0;
   let m;
   while ((m = DENTAL_RE.exec(text)) !== null) {
-    results.push({ clinic: m[1].trim(), patient: m[2].trim(), setDate: m[3], setTime: m[4] });
+    results.push({ clinic: m[1].trim(), patient: m[2].trim(), setDate: m[3], setTime: m[4], gikobutsu: (m[5] || '').trim() });
   }
   return results;
 }
@@ -86,13 +86,13 @@ export default function AddJobForm({ onAdd }) {
       {tab === 'paste' && (
         <div className="paste-area">
           <p style={{ fontSize: '0.75rem', color: '#64748b' }}>
-            形式: <code>[DENTAL:医院名|患者名|YYYY-MM-DD|HH:MM]</code>（複数可）
+            形式: <code>[DENTAL:医院名|患者名|YYYY-MM-DD|HH:MM|技工物]</code>（技工物は省略可・複数可）
           </p>
           <textarea
             className="paste-textarea"
             value={pasteText}
             onChange={e => setPaste(e.target.value)}
-            placeholder={'例: [DENTAL:中央歯科|山田太郎|2024-05-10|14:00]'}
+            placeholder={'例: [DENTAL:中央歯科|山田太郎|2024-05-10|14:00|CAD]'}
           />
           <div className="btn-row">
             <button className="clipboard-btn" onClick={handleClipboard}>

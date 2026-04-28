@@ -55,6 +55,11 @@ export default function App() {
     await loadJobs();
   }
 
+  async function handleFieldUpdate(id, fields) {
+    await updateJob(id, fields);
+    await loadJobs();
+  }
+
   async function handleUpdate(id, fields) {
     await updateJob(id, fields);
     await loadJobs();
@@ -92,6 +97,7 @@ export default function App() {
               onToggleDone={handleToggleDone}
               onDelete={handleDelete}
               onEdit={setEditingJob}
+              onUpdate={handleFieldUpdate}
               onClose={() => setSelectedDate(null)}
             />
           )}
@@ -101,7 +107,7 @@ export default function App() {
           <AddJobForm onAdd={handleAdd} />
         </div>
 
-        <TodayPanel jobs={jobs} onToggleDone={handleToggleDone} onEdit={setEditingJob} />
+        <TodayPanel jobs={jobs} onToggleDone={handleToggleDone} onEdit={setEditingJob} onUpdate={handleFieldUpdate} />
       </div>
 
       {editingJob && (
