@@ -29,34 +29,408 @@ const SEED_CLINICS = [
 ];
 
 const SEED_PRODUCTS = [
-  { id: 'p001', code: '001', name: '前装冠（1本）',          category: '保険技工' },
-  { id: 'p002', code: '002', name: '前装冠（2本ブリッジ）',  category: '保険技工' },
-  { id: 'p003', code: '003', name: '前装冠（3本ブリッジ）',  category: '保険技工' },
-  { id: 'p004', code: '004', name: 'CAD/CAM冠（1本）',       category: '保険技工' },
-  { id: 'p005', code: '005', name: '金属冠（1本）',          category: '保険技工' },
-  { id: 'p006', code: '006', name: '部分床義歯（片顎）',     category: '保険技工' },
-  { id: 'p007', code: '007', name: '総義歯（片顎）',         category: '保険技工' },
-  { id: 'p008', code: '008', name: 'ジルコニアクラウン',     category: '自費技工' },
-  { id: 'p009', code: '009', name: 'セラミッククラウン（e.max）', category: '自費技工' },
-  { id: 'p010', code: '010', name: '石膏模型',               category: '材料' },
-  { id: 'p011', code: '011', name: 'ロウ型',                 category: '材料' },
-  { id: 'p012', code: '012', name: '預かり',                 category: '預かり' },
+  { id: 'p001', code: '001', name: 'CAD／CAM冠Ⅱ',                   category: '保険技工' },
+  { id: 'p002', code: '002', name: 'CAD／CAM冠Ⅲ',                   category: '保険技工' },
+  { id: 'p003', code: '003', name: 'CAD／CAM冠Ⅳ',                   category: '保険技工' },
+  { id: 'p004', code: '004', name: 'CAD／CAM冠Ⅴ',                   category: '保険技工' },
+  { id: 'p005', code: '005', name: 'CAD／CAMエンドクラウン',         category: '保険技工' },
+  { id: 'p006', code: '006', name: 'CAD／CAMインレー',               category: '保険技工' },
+  { id: 'p007', code: '007', name: 'CAD／CAMブロックⅡ',             category: '材料' },
+  { id: 'p008', code: '008', name: 'CAD／CAMブロックⅢ',             category: '材料' },
+  { id: 'p009', code: '009', name: 'CAD／CAMブロックⅣ',             category: '材料' },
+  { id: 'p010', code: '010', name: 'CAD／CAMブロックⅤ',             category: '材料' },
+  { id: 'p011', code: '011', name: 'FMC',                            category: '保険技工' },
+  { id: 'p012', code: '012', name: 'メタルインレー複雑',             category: '保険技工' },
+  { id: 'p013', code: '013', name: 'メタルインレー単純',             category: '保険技工' },
+  { id: 'p014', code: '014', name: 'メタルコア',                     category: '保険技工' },
+  { id: 'p015', code: '015', name: '硬質レジン前装冠',               category: '保険技工' },
+  { id: 'p016', code: '016', name: '硬質レジンフレーム試適',         category: '保険技工' },
+  { id: 'p017', code: '017', name: '硬質レジン完成',                 category: '保険技工' },
+  { id: 'p018', code: '018', name: 'レジンポンティック',             category: '保険技工' },
+  { id: 'p019', code: '019', name: '４／５',                         category: '保険技工' },
+  { id: 'p020', code: '020', name: '３／４',                         category: '保険技工' },
+  { id: 'p021', code: '021', name: 'ロー着',                         category: '保険技工' },
+  { id: 'p022', code: '022', name: 'TEK',                            category: '保険技工' },
+  { id: 'p023', code: '023', name: 'ジルコニア',                     category: '自費技工' },
+  { id: 'p024', code: '024', name: 'ジルコニア連結',                 category: '自費技工' },
+  { id: 'p025', code: '025', name: 'ジルコニア試適',                 category: '自費技工' },
+  { id: 'p026', code: '026', name: 'ジルコニア完成',                 category: '自費技工' },
+  { id: 'p027', code: '027', name: 'フルジルコニア',                 category: '自費技工' },
+  { id: 'p028', code: '028', name: 'ジルコニアインレー',             category: '自費技工' },
+  { id: 'p029', code: '029', name: 'メタルボンド',                   category: '自費技工' },
+  { id: 'p030', code: '030', name: 'カラーレス',                     category: '自費技工' },
+  { id: 'p031', code: '031', name: 'ゴールドFMC',                    category: '自費技工' },
+  { id: 'p032', code: '032', name: 'ゴールドインレー',               category: '自費技工' },
+  { id: 'p033', code: '033', name: 'コバルトHR',                     category: '自費技工' },
+  { id: 'p034', code: '034', name: 'コバルトFMC',                    category: '自費技工' },
+  { id: 'p035', code: '035', name: 'コバルトHB',                     category: '自費技工' },
+  { id: 'p036', code: '036', name: 'コバルト連結',                   category: '自費技工' },
+  { id: 'p037', code: '037', name: 'コバルトFMCフレームミリング',   category: '自費技工' },
+  { id: 'p038', code: '038', name: 'コバルトHRフレームミリング',    category: '自費技工' },
+  { id: 'p039', code: '039', name: 'コバルトHBフレームミリング',    category: '自費技工' },
+  { id: 'p040', code: '040', name: 'セラミックインレー',             category: '自費技工' },
+  { id: 'p041', code: '041', name: 'セラミックオンレー',             category: '自費技工' },
+  { id: 'p042', code: '042', name: 'インプラント作業用模型',         category: '自費技工' },
+  { id: 'p043', code: '043', name: 'インプラントガム模型',           category: '自費技工' },
+  { id: 'p044', code: '044', name: '既成アバットメント調整',         category: '自費技工' },
+  { id: 'p045', code: '045', name: '既成アバットメント',             category: '自費技工' },
+  { id: 'p046', code: '046', name: 'ラボアナログ',                   category: '自費技工' },
+  { id: 'p047', code: '047', name: 'インプラント技工',               category: '自費技工' },
+  { id: 'p048', code: '048', name: 'チタンカスタムアバットメント',   category: '自費技工' },
+  { id: 'p049', code: '049', name: 'ジルコニアアバットメント',       category: '自費技工' },
+  { id: 'p050', code: '050', name: 'ナイトガード',                   category: '保険技工' },
+  { id: 'p051', code: '051', name: 'スプリント',                     category: '自費技工' },
+  { id: 'p052', code: '052', name: 'パラ',                           category: '材料' },
+  { id: 'p053', code: '053', name: 'ミロ',                           category: '材料' },
+  { id: 'p054', code: '054', name: 'タイプ3',                        category: '材料' },
+  { id: 'p055', code: '055', name: 'セミプレシャス',                 category: '材料' },
 ];
 
+// 0円は「未設定」扱いのため登録しない
 const SEED_PRICES = [
-  { clinicId: 'c1', productId: 'p001', price: 6390 },
-  { clinicId: 'c1', productId: 'p005', price: 4000 },
-  { clinicId: 'c1', productId: 'p007', price: 31800 },
-  { clinicId: 'c2', productId: 'p001', price: 5000 },
-  { clinicId: 'c2', productId: 'p004', price: 14500 },
-  { clinicId: 'c2', productId: 'p008', price: 44000 },
-  { clinicId: 'c4', productId: 'p004', price: 8400 },
-  { clinicId: 'c5', productId: 'p001', price: 5250 },
-  { clinicId: 'c5', productId: 'p004', price: 8400 },
-  { clinicId: 'c5', productId: 'p006', price: 10400 },
-  { clinicId: 'c6', productId: 'p001', price: 4000 },
-  { clinicId: 'c7', productId: 'p001', price: 4000 },
-  { clinicId: 'c8', productId: 'p001', price: 5000 },
+  // CAD／CAM冠Ⅱ
+  { clinicId: 'c1', productId: 'p001', price:  6390 },
+  { clinicId: 'c2', productId: 'p001', price:  4000 },
+  { clinicId: 'c3', productId: 'p001', price:  4000 },
+  { clinicId: 'c4', productId: 'p001', price:  8400 },
+  { clinicId: 'c5', productId: 'p001', price:  8400 },
+  { clinicId: 'c6', productId: 'p001', price:  4000 },
+  { clinicId: 'c7', productId: 'p001', price:  4000 },
+  { clinicId: 'c8', productId: 'p001', price:  5000 },
+  // CAD／CAM冠Ⅲ
+  { clinicId: 'c1', productId: 'p002', price:  6300 },
+  { clinicId: 'c2', productId: 'p002', price:  4000 },
+  { clinicId: 'c3', productId: 'p002', price:  4000 },
+  { clinicId: 'c4', productId: 'p002', price:  8400 },
+  { clinicId: 'c5', productId: 'p002', price:  8400 },
+  { clinicId: 'c6', productId: 'p002', price:  5000 },
+  { clinicId: 'c7', productId: 'p002', price:  4000 },
+  { clinicId: 'c8', productId: 'p002', price:  5000 },
+  // CAD／CAM冠Ⅳ
+  { clinicId: 'c1', productId: 'p003', price:  6390 },
+  { clinicId: 'c2', productId: 'p003', price:  4000 },
+  { clinicId: 'c3', productId: 'p003', price:  4000 },
+  { clinicId: 'c4', productId: 'p003', price:  8400 },
+  { clinicId: 'c5', productId: 'p003', price:  8400 },
+  { clinicId: 'c6', productId: 'p003', price:  5620 },
+  { clinicId: 'c7', productId: 'p003', price:  6000 },
+  { clinicId: 'c8', productId: 'p003', price:  5000 },
+  // CAD／CAM冠Ⅴ
+  { clinicId: 'c1', productId: 'p004', price:  6390 },
+  { clinicId: 'c2', productId: 'p004', price:  4000 },
+  { clinicId: 'c3', productId: 'p004', price:  4000 },
+  { clinicId: 'c4', productId: 'p004', price:  8400 },
+  { clinicId: 'c5', productId: 'p004', price:  8400 },
+  { clinicId: 'c6', productId: 'p004', price:  5000 },
+  { clinicId: 'c7', productId: 'p004', price:  6000 },
+  { clinicId: 'c8', productId: 'p004', price:  6000 },
+  // CAD／CAMエンドクラウン
+  { clinicId: 'c1', productId: 'p005', price:  7300 },
+  { clinicId: 'c2', productId: 'p005', price:  5000 },
+  { clinicId: 'c3', productId: 'p005', price:  5000 },
+  { clinicId: 'c4', productId: 'p005', price:  9400 },
+  { clinicId: 'c5', productId: 'p005', price:  9400 },
+  { clinicId: 'c6', productId: 'p005', price:  6000 },
+  { clinicId: 'c7', productId: 'p005', price:  5000 },
+  { clinicId: 'c8', productId: 'p005', price:  6000 },
+  // CAD／CAMインレー
+  { clinicId: 'c1', productId: 'p006', price:  4690 },
+  { clinicId: 'c2', productId: 'p006', price:  3000 },
+  { clinicId: 'c3', productId: 'p006', price:  3000 },
+  { clinicId: 'c4', productId: 'p006', price:  5000 },
+  { clinicId: 'c5', productId: 'p006', price:  5250 },
+  { clinicId: 'c6', productId: 'p006', price:  3000 },
+  { clinicId: 'c7', productId: 'p006', price:  3000 },
+  { clinicId: 'c8', productId: 'p006', price:  4000 },
+  // CAD／CAMブロックⅡ
+  { clinicId: 'c1', productId: 'p007', price:  1630 },
+  { clinicId: 'c2', productId: 'p007', price:  1630 },
+  { clinicId: 'c3', productId: 'p007', price:  1630 },
+  { clinicId: 'c4', productId: 'p007', price:  1630 },
+  { clinicId: 'c5', productId: 'p007', price:  1630 },
+  { clinicId: 'c6', productId: 'p007', price:  1630 },
+  { clinicId: 'c7', productId: 'p007', price:  2500 },
+  { clinicId: 'c8', productId: 'p007', price:  1630 },
+  // CAD／CAMブロックⅢ
+  { clinicId: 'c1', productId: 'p008', price:  3160 },
+  { clinicId: 'c2', productId: 'p008', price:  3160 },
+  { clinicId: 'c3', productId: 'p008', price:  3160 },
+  { clinicId: 'c4', productId: 'p008', price:  3160 },
+  { clinicId: 'c5', productId: 'p008', price:  3160 },
+  { clinicId: 'c6', productId: 'p008', price:  3160 },
+  { clinicId: 'c7', productId: 'p008', price:  3500 },
+  { clinicId: 'c8', productId: 'p008', price:  3160 },
+  // CAD／CAMブロックⅣ
+  { clinicId: 'c1', productId: 'p009', price:  3880 },
+  { clinicId: 'c2', productId: 'p009', price:  3880 },
+  { clinicId: 'c3', productId: 'p009', price:  3880 },
+  { clinicId: 'c4', productId: 'p009', price:  3880 },
+  { clinicId: 'c5', productId: 'p009', price:  3880 },
+  { clinicId: 'c6', productId: 'p009', price:  3880 },
+  { clinicId: 'c7', productId: 'p009', price:  3880 },
+  { clinicId: 'c8', productId: 'p009', price:  3880 },
+  // CAD／CAMブロックⅤ
+  { clinicId: 'c1', productId: 'p010', price:  6150 },
+  { clinicId: 'c2', productId: 'p010', price:  6150 },
+  { clinicId: 'c3', productId: 'p010', price:  6150 },
+  { clinicId: 'c4', productId: 'p010', price:  6150 },
+  { clinicId: 'c5', productId: 'p010', price:  6150 },
+  { clinicId: 'c6', productId: 'p010', price:  6150 },
+  { clinicId: 'c7', productId: 'p010', price:  6150 },
+  { clinicId: 'c8', productId: 'p010', price:  6150 },
+  // FMC
+  { clinicId: 'c1', productId: 'p011', price:  1900 },
+  { clinicId: 'c2', productId: 'p011', price:  2000 },
+  { clinicId: 'c3', productId: 'p011', price:  2000 },
+  { clinicId: 'c4', productId: 'p011', price:  2000 },
+  { clinicId: 'c5', productId: 'p011', price:  2000 },
+  { clinicId: 'c6', productId: 'p011', price:  2000 },
+  { clinicId: 'c7', productId: 'p011', price:  2000 },
+  { clinicId: 'c8', productId: 'p011', price:  2000 },
+  // メタルインレー複雑
+  { clinicId: 'c1', productId: 'p012', price:  1300 },
+  { clinicId: 'c2', productId: 'p012', price:  1300 },
+  { clinicId: 'c3', productId: 'p012', price:  1500 },
+  { clinicId: 'c4', productId: 'p012', price:  1500 },
+  { clinicId: 'c5', productId: 'p012', price:  1200 },
+  { clinicId: 'c6', productId: 'p012', price:  1500 },
+  { clinicId: 'c7', productId: 'p012', price:  1500 },
+  { clinicId: 'c8', productId: 'p012', price:  1500 },
+  // メタルインレー単純
+  { clinicId: 'c1', productId: 'p013', price:  1000 },
+  { clinicId: 'c2', productId: 'p013', price:  1000 },
+  { clinicId: 'c3', productId: 'p013', price:  1300 },
+  { clinicId: 'c4', productId: 'p013', price:  1300 },
+  { clinicId: 'c5', productId: 'p013', price:  1100 },
+  { clinicId: 'c6', productId: 'p013', price:  1300 },
+  { clinicId: 'c7', productId: 'p013', price:  1300 },
+  { clinicId: 'c8', productId: 'p013', price:  1300 },
+  // メタルコア
+  { clinicId: 'c1', productId: 'p014', price:  1000 },
+  { clinicId: 'c2', productId: 'p014', price:   800 },
+  { clinicId: 'c3', productId: 'p014', price:  1000 },
+  { clinicId: 'c4', productId: 'p014', price:  1000 },
+  { clinicId: 'c5', productId: 'p014', price:  1000 },
+  { clinicId: 'c6', productId: 'p014', price:  1000 },
+  { clinicId: 'c7', productId: 'p014', price:  1000 },
+  { clinicId: 'c8', productId: 'p014', price:  1000 },
+  // 硬質レジン前装冠
+  { clinicId: 'c1', productId: 'p015', price:  4000 },
+  { clinicId: 'c2', productId: 'p015', price:  4000 },
+  { clinicId: 'c3', productId: 'p015', price:  4500 },
+  { clinicId: 'c4', productId: 'p015', price:  4500 },
+  { clinicId: 'c5', productId: 'p015', price:  4200 },
+  { clinicId: 'c6', productId: 'p015', price:  4500 },
+  { clinicId: 'c7', productId: 'p015', price:  4500 },
+  { clinicId: 'c8', productId: 'p015', price:  4500 },
+  // 硬質レジンフレーム試適（吉岡・きむらのみ）
+  { clinicId: 'c1', productId: 'p016', price:  2400 },
+  { clinicId: 'c7', productId: 'p016', price:  2600 },
+  // 硬質レジン完成（吉岡・きむらのみ）
+  { clinicId: 'c1', productId: 'p017', price:  1600 },
+  { clinicId: 'c7', productId: 'p017', price:  1400 },
+  // レジンポンティック
+  { clinicId: 'c1', productId: 'p018', price:  2300 },
+  { clinicId: 'c2', productId: 'p018', price:  2500 },
+  { clinicId: 'c3', productId: 'p018', price:  2500 },
+  { clinicId: 'c4', productId: 'p018', price:  2500 },
+  { clinicId: 'c5', productId: 'p018', price:  2300 },
+  { clinicId: 'c6', productId: 'p018', price:  2500 },
+  { clinicId: 'c7', productId: 'p018', price:  2500 },
+  { clinicId: 'c8', productId: 'p018', price:  2500 },
+  // ４／５
+  { clinicId: 'c1', productId: 'p019', price:  1700 },
+  { clinicId: 'c2', productId: 'p019', price:  1700 },
+  { clinicId: 'c3', productId: 'p019', price:  1800 },
+  { clinicId: 'c4', productId: 'p019', price:  1800 },
+  { clinicId: 'c5', productId: 'p019', price:  1800 },
+  { clinicId: 'c6', productId: 'p019', price:  1800 },
+  { clinicId: 'c7', productId: 'p019', price:  1800 },
+  { clinicId: 'c8', productId: 'p019', price:  1800 },
+  // ３／４
+  { clinicId: 'c1', productId: 'p020', price:  1700 },
+  { clinicId: 'c2', productId: 'p020', price:  1700 },
+  { clinicId: 'c3', productId: 'p020', price:  1800 },
+  { clinicId: 'c4', productId: 'p020', price:  1800 },
+  { clinicId: 'c5', productId: 'p020', price:  1800 },
+  { clinicId: 'c6', productId: 'p020', price:  1800 },
+  { clinicId: 'c7', productId: 'p020', price:  1800 },
+  { clinicId: 'c8', productId: 'p020', price:  1800 },
+  // ロー着
+  { clinicId: 'c1', productId: 'p021', price:   950 },
+  { clinicId: 'c2', productId: 'p021', price:   950 },
+  { clinicId: 'c3', productId: 'p021', price:  1000 },
+  { clinicId: 'c4', productId: 'p021', price:  1000 },
+  { clinicId: 'c5', productId: 'p021', price:   900 },
+  { clinicId: 'c6', productId: 'p021', price:  1000 },
+  { clinicId: 'c7', productId: 'p021', price:  1000 },
+  { clinicId: 'c8', productId: 'p021', price:  1000 },
+  // TEK
+  { clinicId: 'c1', productId: 'p022', price:   800 },
+  { clinicId: 'c2', productId: 'p022', price:  1000 },
+  { clinicId: 'c3', productId: 'p022', price:  1000 },
+  { clinicId: 'c4', productId: 'p022', price:  1000 },
+  { clinicId: 'c5', productId: 'p022', price:  1000 },
+  { clinicId: 'c6', productId: 'p022', price:   800 },
+  { clinicId: 'c7', productId: 'p022', price:   800 },
+  { clinicId: 'c8', productId: 'p022', price:   800 },
+  // ジルコニア
+  { clinicId: 'c1', productId: 'p023', price: 23000 },
+  { clinicId: 'c2', productId: 'p023', price: 20000 },
+  { clinicId: 'c3', productId: 'p023', price: 20000 },
+  { clinicId: 'c4', productId: 'p023', price: 23000 },
+  { clinicId: 'c5', productId: 'p023', price: 21000 },
+  { clinicId: 'c6', productId: 'p023', price: 23000 },
+  { clinicId: 'c7', productId: 'p023', price: 23000 },
+  { clinicId: 'c8', productId: 'p023', price: 24000 },
+  // ジルコニア連結
+  { clinicId: 'c1', productId: 'p024', price:  3000 },
+  { clinicId: 'c2', productId: 'p024', price:  3000 },
+  { clinicId: 'c3', productId: 'p024', price:  3000 },
+  { clinicId: 'c4', productId: 'p024', price:  3000 },
+  { clinicId: 'c5', productId: 'p024', price:  3000 },
+  { clinicId: 'c6', productId: 'p024', price:  3000 },
+  { clinicId: 'c7', productId: 'p024', price:  3000 },
+  { clinicId: 'c8', productId: 'p024', price:  3000 },
+  // ジルコニア試適（織田・高尾は未設定）
+  { clinicId: 'c1', productId: 'p025', price: 13000 },
+  { clinicId: 'c2', productId: 'p025', price: 13000 },
+  { clinicId: 'c4', productId: 'p025', price: 13000 },
+  { clinicId: 'c5', productId: 'p025', price: 13000 },
+  { clinicId: 'c6', productId: 'p025', price: 13000 },
+  { clinicId: 'c7', productId: 'p025', price: 13000 },
+  // ジルコニア完成（織田・高尾は未設定）
+  { clinicId: 'c1', productId: 'p026', price: 10000 },
+  { clinicId: 'c2', productId: 'p026', price: 10000 },
+  { clinicId: 'c4', productId: 'p026', price: 10000 },
+  { clinicId: 'c5', productId: 'p026', price: 10000 },
+  { clinicId: 'c6', productId: 'p026', price: 10000 },
+  { clinicId: 'c7', productId: 'p026', price: 10000 },
+  // フルジルコニア
+  { clinicId: 'c1', productId: 'p027', price: 16000 },
+  { clinicId: 'c2', productId: 'p027', price: 16000 },
+  { clinicId: 'c3', productId: 'p027', price: 16000 },
+  { clinicId: 'c4', productId: 'p027', price: 16000 },
+  { clinicId: 'c5', productId: 'p027', price: 15000 },
+  { clinicId: 'c6', productId: 'p027', price: 16000 },
+  { clinicId: 'c7', productId: 'p027', price: 16000 },
+  { clinicId: 'c8', productId: 'p027', price: 11000 },
+  // ジルコニアインレー（きむらのみ）
+  { clinicId: 'c7', productId: 'p028', price: 11000 },
+  // メタルボンド（高尾は未設定）
+  { clinicId: 'c1', productId: 'p029', price: 12000 },
+  { clinicId: 'c2', productId: 'p029', price: 10000 },
+  { clinicId: 'c3', productId: 'p029', price: 10000 },
+  { clinicId: 'c4', productId: 'p029', price: 15000 },
+  { clinicId: 'c5', productId: 'p029', price: 12000 },
+  { clinicId: 'c6', productId: 'p029', price: 12000 },
+  { clinicId: 'c7', productId: 'p029', price: 12000 },
+  // カラーレス（高尾は未設定）
+  { clinicId: 'c1', productId: 'p030', price:  2000 },
+  { clinicId: 'c2', productId: 'p030', price:  2000 },
+  { clinicId: 'c3', productId: 'p030', price:  2000 },
+  { clinicId: 'c4', productId: 'p030', price:  3000 },
+  { clinicId: 'c5', productId: 'p030', price:  2000 },
+  { clinicId: 'c6', productId: 'p030', price:  2000 },
+  { clinicId: 'c7', productId: 'p030', price:  2000 },
+  // ゴールドFMC（高尾は未設定）
+  { clinicId: 'c1', productId: 'p031', price:  3000 },
+  { clinicId: 'c2', productId: 'p031', price:  3000 },
+  { clinicId: 'c3', productId: 'p031', price:  3000 },
+  { clinicId: 'c4', productId: 'p031', price:  3000 },
+  { clinicId: 'c5', productId: 'p031', price:  3000 },
+  { clinicId: 'c6', productId: 'p031', price:  3000 },
+  { clinicId: 'c7', productId: 'p031', price:  3000 },
+  // ゴールドインレー（高尾は未設定）
+  { clinicId: 'c1', productId: 'p032', price:  2500 },
+  { clinicId: 'c2', productId: 'p032', price:  2500 },
+  { clinicId: 'c3', productId: 'p032', price:  2500 },
+  { clinicId: 'c4', productId: 'p032', price:  2500 },
+  { clinicId: 'c5', productId: 'p032', price:  2500 },
+  { clinicId: 'c6', productId: 'p032', price:  2500 },
+  { clinicId: 'c7', productId: 'p032', price:  2500 },
+  // コバルトHR（吉岡〜田伏のみ）
+  { clinicId: 'c1', productId: 'p033', price:  7500 },
+  { clinicId: 'c2', productId: 'p033', price:  7500 },
+  { clinicId: 'c3', productId: 'p033', price:  7500 },
+  { clinicId: 'c4', productId: 'p033', price:  7500 },
+  { clinicId: 'c5', productId: 'p033', price:  7500 },
+  // コバルトFMC（吉岡〜田伏のみ）
+  { clinicId: 'c1', productId: 'p034', price:  4500 },
+  { clinicId: 'c2', productId: 'p034', price:  4500 },
+  { clinicId: 'c3', productId: 'p034', price:  4500 },
+  { clinicId: 'c4', productId: 'p034', price:  4500 },
+  { clinicId: 'c5', productId: 'p034', price:  4500 },
+  // コバルトHB（吉岡〜田伏のみ）
+  { clinicId: 'c1', productId: 'p035', price:  9000 },
+  { clinicId: 'c2', productId: 'p035', price:  9000 },
+  { clinicId: 'c3', productId: 'p035', price:  9000 },
+  { clinicId: 'c4', productId: 'p035', price:  9000 },
+  { clinicId: 'c5', productId: 'p035', price:  9000 },
+  // コバルト連結（吉岡〜田伏のみ）
+  { clinicId: 'c1', productId: 'p036', price:  1000 },
+  { clinicId: 'c2', productId: 'p036', price:  1000 },
+  { clinicId: 'c3', productId: 'p036', price:  1000 },
+  { clinicId: 'c4', productId: 'p036', price:  1000 },
+  { clinicId: 'c5', productId: 'p036', price:  1000 },
+  // コバルトFMCフレームミリング（吉岡〜田伏のみ）
+  { clinicId: 'c1', productId: 'p037', price:  7000 },
+  { clinicId: 'c2', productId: 'p037', price:  7000 },
+  { clinicId: 'c3', productId: 'p037', price:  7000 },
+  { clinicId: 'c4', productId: 'p037', price:  7000 },
+  { clinicId: 'c5', productId: 'p037', price:  7000 },
+  // コバルトHRフレームミリング（吉岡〜田伏のみ）
+  { clinicId: 'c1', productId: 'p038', price: 10000 },
+  { clinicId: 'c2', productId: 'p038', price: 10000 },
+  { clinicId: 'c3', productId: 'p038', price: 10000 },
+  { clinicId: 'c4', productId: 'p038', price: 10000 },
+  { clinicId: 'c5', productId: 'p038', price: 10000 },
+  // コバルトHBフレームミリング（吉岡〜田伏のみ）
+  { clinicId: 'c1', productId: 'p039', price: 11500 },
+  { clinicId: 'c2', productId: 'p039', price: 11500 },
+  { clinicId: 'c3', productId: 'p039', price: 11500 },
+  { clinicId: 'c4', productId: 'p039', price: 11500 },
+  { clinicId: 'c5', productId: 'p039', price: 11500 },
+  // セラミックインレー（吉岡〜クロイのみ）
+  { clinicId: 'c1', productId: 'p040', price: 13000 },
+  { clinicId: 'c2', productId: 'p040', price: 13000 },
+  { clinicId: 'c3', productId: 'p040', price: 13000 },
+  { clinicId: 'c4', productId: 'p040', price: 13000 },
+  { clinicId: 'c5', productId: 'p040', price: 13000 },
+  { clinicId: 'c6', productId: 'p040', price: 13000 },
+  // セラミックオンレー（吉岡〜クロイのみ）
+  { clinicId: 'c1', productId: 'p041', price: 15000 },
+  { clinicId: 'c2', productId: 'p041', price: 15000 },
+  { clinicId: 'c3', productId: 'p041', price: 15000 },
+  { clinicId: 'c4', productId: 'p041', price: 15000 },
+  { clinicId: 'c5', productId: 'p041', price: 15000 },
+  { clinicId: 'c6', productId: 'p041', price: 15000 },
+  // インプラント作業用模型（織田・田伏のみ）
+  { clinicId: 'c3', productId: 'p042', price:  1000 },
+  { clinicId: 'c5', productId: 'p042', price:  1000 },
+  // インプラントガム模型（織田・田伏のみ）
+  { clinicId: 'c3', productId: 'p043', price:  1000 },
+  { clinicId: 'c5', productId: 'p043', price:  1000 },
+  // 既成アバットメント調整（織田のみ）
+  { clinicId: 'c3', productId: 'p044', price:  3000 },
+  // 既成アバットメント（織田のみ）
+  { clinicId: 'c3', productId: 'p045', price: 16000 },
+  // ラボアナログ（織田のみ）
+  { clinicId: 'c3', productId: 'p046', price:  3500 },
+  // インプラント技工（くいなばし・三村のみ）
+  { clinicId: 'c2', productId: 'p047', price:  5000 },
+  { clinicId: 'c4', productId: 'p047', price:  5000 },
+  // チタンカスタムアバットメント（くいなばし・田伏のみ）
+  { clinicId: 'c2', productId: 'p048', price: 23000 },
+  { clinicId: 'c5', productId: 'p048', price: 23000 },
+  // ジルコニアアバットメント（くいなばし・田伏のみ）
+  { clinicId: 'c2', productId: 'p049', price: 29000 },
+  { clinicId: 'c5', productId: 'p049', price: 29000 },
+  // ナイトガード（高尾のみ）
+  { clinicId: 'c8', productId: 'p050', price:  4000 },
+  // スプリント（高尾のみ）
+  { clinicId: 'c8', productId: 'p051', price:  7500 },
+  // パラ・ミロ・タイプ3・セミプレシャスは全医院0円のため登録なし
 ];
 
 const SEED_JOBS = [
@@ -164,25 +538,30 @@ async function initDb() {
   // 医院名の表記揺れを修正（既存DBデータ対応）
   await pool.query("UPDATE jobs SET clinic = 'クロイ歯科医院' WHERE clinic = 'クロイD・C'");
 
-  // 初回のみシード（clinicsが空なら全テーブルに初期データを投入）
+  // 製品・料金表を常に最新シードデータで同期（差し替え）
+  await pool.query('DELETE FROM prices');
+  await pool.query('DELETE FROM products');
+  for (const p of SEED_PRODUCTS) {
+    await pool.query(
+      'INSERT INTO products (id, code, name, category) VALUES ($1,$2,$3,$4)',
+      [p.id, p.code, p.name, p.category]
+    );
+  }
+  for (const pr of SEED_PRICES) {
+    await pool.query(
+      'INSERT INTO prices (clinic_id, product_id, price) VALUES ($1,$2,$3)',
+      [pr.clinicId, pr.productId, pr.price]
+    );
+  }
+  console.log(`製品・料金表を更新しました（製品${SEED_PRODUCTS.length}件 / 料金${SEED_PRICES.length}件）`);
+
+  // 初回のみシード（clinicsが空なら clinics・jobs に初期データを投入）
   const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM clinics');
   if (rows[0].cnt === 0) {
     for (const c of SEED_CLINICS) {
       await pool.query(
         'INSERT INTO clinics (id, name, short_name, closing_day) VALUES ($1,$2,$3,$4)',
         [c.id, c.name, c.shortName, c.closingDay]
-      );
-    }
-    for (const p of SEED_PRODUCTS) {
-      await pool.query(
-        'INSERT INTO products (id, code, name, category) VALUES ($1,$2,$3,$4)',
-        [p.id, p.code, p.name, p.category]
-      );
-    }
-    for (const pr of SEED_PRICES) {
-      await pool.query(
-        'INSERT INTO prices (clinic_id, product_id, price) VALUES ($1,$2,$3)',
-        [pr.clinicId, pr.productId, pr.price]
       );
     }
     for (const j of SEED_JOBS) {
