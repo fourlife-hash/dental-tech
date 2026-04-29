@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import DeliveryNotePrint from './DeliveryNotePrint.jsx';
+import { deleteDeliveryNote } from '../api.js';
 
 function fmt(str) {
   if (!str) return '';
@@ -7,15 +8,22 @@ function fmt(str) {
   return `${y}/${m}/${d}`;
 }
 
-export default function DeliveryNoteList({ notes, onEdit }) {
+export default function DeliveryNoteList({ notes, onReload, onEdit }) {
   const [printNotes, setPrintNotes] = useState(null);
 
+  // 再印刷：該当1件のみ
   function handleReprint(n) {
-    // 同医院・同日の全納品書をまとめて印刷
-    const batch = notes
-      .filter(x => x.clinicName === n.clinicName && x.deliveryDate === n.deliveryDate)
-      .sort((a, b) => a.deliveryNo.localeCompare(b.deliveryNo));
-    setPrintNotes(batch.length > 0 ? batch : [n]);
+    setPrintNotes([n]);
+  }
+
+  async function handleDelete(n) {
+    if (!window.confirm(`この納品書を削除しますか？\nNo.${n.deliveryNo}　${n.clinicName}　${n.patientName || ''}`)) return;
+    try {
+      await deleteDeliveryNote(n.id);
+      onReload?.();
+    } catch {
+      alert('削除に失敗しました');
+    }
   }
 
   return (
@@ -51,6 +59,7 @@ export default function DeliveryNoteList({ notes, onEdit }) {
                 <td className="dn-list-actions">
                   <button className="edit-btn" onClick={() => handleReprint(n)}>再印刷</button>
                   <button className="edit-btn" onClick={() => onEdit(n)}>修正</button>
+                  <button className="del-btn"  onClick={() => handleDelete(n)}>削除</button>
                 </td>
               </tr>
             ))}

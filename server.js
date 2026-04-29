@@ -802,7 +802,21 @@ app.post('/api/prices', async (req, res) => {
 
 app.get('/api/delivery-notes', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM delivery_notes ORDER BY delivery_no DESC');
+    // 同一医院・日付・患者名の重複は最新1件のみ返す
+    const { rows } = await pool.query(`
+      SELECT * FROM (
+        SELECT DISTINCT ON (
+          clinic_name, delivery_date,
+          COALESCE(NULLIF(patient_name, ''), id)
+        ) *
+        FROM delivery_notes
+        ORDER BY
+          clinic_name, delivery_date,
+          COALESCE(NULLIF(patient_name, ''), id),
+          created_at DESC
+      ) deduped
+      ORDER BY delivery_no DESC
+    `);
     res.json(rows.map(deliveryNoteFromRow));
   } catch (err) {
     console.error(err);
@@ -829,6 +843,32 @@ app.post('/api/delivery-notes', async (req, res) => {
     return res.status(400).json({ error: '必須項目が不足しています' });
   }
   try {
+    // 同一医院・日付・患者名が既存なら UPDATE（upsert）
+    if (patientName) {
+      const dup = await pool.query(
+        'SELECT id FROM delivery_notes WHERE clinic_name=$1 AND delivery_date=$2 AND patient_name=$3',
+        [clinicName, deliveryDate, patientName]
+      );
+      if (dup.rowCount > 0) {
+        const result = await pool.query(
+          `UPDATE delivery_notes SET
+             clinic_id=$1, shiki=$2,
+             rows=$3, para_gram=$4, miro_gram=$5,
+             subtotal_giko=$6, subtotal_material=$7, tax=$8, total=$9
+           WHERE id=$10 RETURNING *`,
+          [
+            clinicId || null, shiki || '',
+            JSON.stringify(rows || []),
+            paraGram || 0, miroGram || 0,
+            subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
+            dup.rows[0].id,
+          ]
+        );
+        return res.json(deliveryNoteFromRow(result.rows[0]));
+      }
+    }
+
+    // 新規作成
     const { rows: seq } = await pool.query(
       "SELECT COALESCE(MAX(delivery_no::integer), 0) + 1 AS next_no FROM delivery_notes"
     );
@@ -886,6 +926,17 @@ app.put('/api/delivery-notes/:id', async (req, res) => {
     );
     if (result.rowCount === 0) return res.status(404).json({ error: '納品書が見つかりません' });
     res.json(deliveryNoteFromRow(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+app.delete('/api/delivery-notes/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM delivery_notes WHERE id=$1', [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: '納品書が見つかりません' });
+    res.status(204).end();
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DBエラー' });

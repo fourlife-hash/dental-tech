@@ -70,3 +70,8 @@ export async function updateDeliveryNote(id, data) {
   if (!res.ok) throw new Error('update failed');
   return res.json();
 }
+
+export async function deleteDeliveryNote(id) {
+  const res = await fetch(`${BASE}/delivery-notes/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('delete failed');
+}
