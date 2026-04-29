@@ -17,6 +17,10 @@ function fmtYen(n) {
 export default function DeliveryNotePrint({ note, onClose }) {
   function handlePrint() { window.print(); }
 
+  // 新フォーマット：patientName がある（1患者・複数技工物）
+  const isNewFormat = Boolean(note.patientName);
+  const MIN_ROWS = 8;
+
   return (
     <div className="print-overlay">
       <div className="print-controls no-print">
@@ -42,48 +46,100 @@ export default function DeliveryNotePrint({ note, onClose }) {
         {/* 宛先 */}
         <div className="dp-clinic">{note.clinicName}&nbsp;御中</div>
 
+        {/* 患者名（新フォーマットのみ） */}
+        {isNewFormat && (
+          <div className="dp-patient-info">
+            <span className="dp-patient-label">患者名</span>
+            <span className="dp-patient-name">{note.patientName}</span>
+            {note.shiki && (
+              <>
+                <span className="dp-patient-label" style={{ marginLeft: '2rem' }}>歯式</span>
+                <span className="dp-patient-name">{note.shiki}</span>
+              </>
+            )}
+          </div>
+        )}
+
         {/* 明細テーブル */}
-        <table className="dp-table">
-          <colgroup>
-            <col className="dp-col-patient" />
-            <col className="dp-col-shiki" />
-            <col className="dp-col-giko" />
-            <col className="dp-col-cat" />
-            <col className="dp-col-price" />
-            <col className="dp-col-qty" />
-            <col className="dp-col-amount" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>患者名</th>
-              <th>部位</th>
-              <th>技工物</th>
-              <th>区分</th>
-              <th>単価</th>
-              <th>数量</th>
-              <th>金額</th>
-            </tr>
-          </thead>
-          <tbody>
-            {note.rows.map((row, i) => (
-              <tr key={i}>
-                <td>{row.patientName}</td>
-                <td>{row.shiki}</td>
-                <td>{row.gikobutsuName}</td>
-                <td className="dp-center">{row.category}</td>
-                <td className="dp-right">{row.unitPrice ? fmtYen(row.unitPrice) : ''}</td>
-                <td className="dp-center">{row.quantity}</td>
-                <td className="dp-right">{row.amount ? fmtYen(row.amount) : ''}</td>
+        {isNewFormat ? (
+          // 新フォーマット：技工物のみ（患者名列なし）
+          <table className="dp-table">
+            <colgroup>
+              <col className="dp-col-giko" />
+              <col className="dp-col-cat" />
+              <col className="dp-col-price" />
+              <col className="dp-col-qty" />
+              <col className="dp-col-amount" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>技工物</th>
+                <th>区分</th>
+                <th>単価</th>
+                <th>数量</th>
+                <th>金額</th>
               </tr>
-            ))}
-            {/* 空行でテーブルを埋める（最低8行） */}
-            {Array.from({ length: Math.max(0, 8 - note.rows.length) }).map((_, i) => (
-              <tr key={`empty-${i}`} className="dp-empty-row">
-                <td colSpan={7}>&nbsp;</td>
+            </thead>
+            <tbody>
+              {note.rows.map((row, i) => (
+                <tr key={i}>
+                  <td>{row.gikobutsuName}</td>
+                  <td className="dp-center">{row.category}</td>
+                  <td className="dp-right">{row.unitPrice ? fmtYen(row.unitPrice) : ''}</td>
+                  <td className="dp-center">{row.quantity}</td>
+                  <td className="dp-right">{row.amount ? fmtYen(row.amount) : ''}</td>
+                </tr>
+              ))}
+              {Array.from({ length: Math.max(0, MIN_ROWS - note.rows.length) }).map((_, i) => (
+                <tr key={`empty-${i}`} className="dp-empty-row">
+                  <td colSpan={5}>&nbsp;</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          // 旧フォーマット（後方互換）：患者名・歯式列あり
+          <table className="dp-table">
+            <colgroup>
+              <col className="dp-col-patient" />
+              <col className="dp-col-shiki" />
+              <col className="dp-col-giko" />
+              <col className="dp-col-cat" />
+              <col className="dp-col-price" />
+              <col className="dp-col-qty" />
+              <col className="dp-col-amount" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>患者名</th>
+                <th>部位</th>
+                <th>技工物</th>
+                <th>区分</th>
+                <th>単価</th>
+                <th>数量</th>
+                <th>金額</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {note.rows.map((row, i) => (
+                <tr key={i}>
+                  <td>{row.patientName}</td>
+                  <td>{row.shiki}</td>
+                  <td>{row.gikobutsuName}</td>
+                  <td className="dp-center">{row.category}</td>
+                  <td className="dp-right">{row.unitPrice ? fmtYen(row.unitPrice) : ''}</td>
+                  <td className="dp-center">{row.quantity}</td>
+                  <td className="dp-right">{row.amount ? fmtYen(row.amount) : ''}</td>
+                </tr>
+              ))}
+              {Array.from({ length: Math.max(0, MIN_ROWS - note.rows.length) }).map((_, i) => (
+                <tr key={`empty-${i}`} className="dp-empty-row">
+                  <td colSpan={7}>&nbsp;</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
 
         {/* フッター */}
         <div className="dp-footer">

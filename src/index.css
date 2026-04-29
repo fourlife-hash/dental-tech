@@ -830,3 +830,119 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
   display: flex;
   gap: 0.4rem;
 }
+
+/* ── 納品書：日付選択画面 ── */
+.dn-date-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  gap: 1.25rem;
+}
+.dn-date-prompt {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+}
+.dn-date-input {
+  font-size: 1.25rem;
+  padding: 0.6rem 1rem;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+}
+.dn-date-input:focus { box-shadow: 0 0 0 3px #bfdbfe; }
+.dn-loading { color: #64748b; font-size: 0.9rem; }
+
+/* ── 納品書：患者一覧画面 ── */
+.dn-patients-screen { padding: 0.75rem 1rem; }
+.dn-patients-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.dn-patients-date { font-weight: 600; color: #1e3a5f; font-size: 1rem; }
+.dn-back-btn {
+  padding: 0.35rem 0.85rem;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #475569;
+  white-space: nowrap;
+}
+.dn-back-btn:hover { background: #e2e8f0; }
+
+.dn-clinic-group { margin-bottom: 1.25rem; }
+.dn-clinic-header {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  background: #eff6ff;
+  border-left: 4px solid #2563eb;
+  padding: 0.4rem 0.75rem;
+  margin-bottom: 0.25rem;
+  border-radius: 0 4px 4px 0;
+}
+.dn-patient-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s;
+}
+.dn-patient-item:hover { background: #f0f9ff; }
+.dn-patient-name { font-weight: 600; color: #1e293b; }
+.dn-patient-giko { font-size: 0.8rem; color: #64748b; }
+
+/* ── 納品書フォーム：患者ヘッダー ── */
+.dn-patient-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 0.75rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+.dn-patient-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 8rem;
+}
+.dn-clinic-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+.dn-patient-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+.dn-patient-fields { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+.dn-shiki-input { width: 6rem; }
+
+/* ── 印刷：患者情報（新フォーマット） ── */
+.dp-patient-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #000;
+  font-size: 0.9rem;
+}
+.dp-patient-label { font-weight: 600; color: #444; font-size: 0.8rem; }
+.dp-patient-name  { font-weight: 700; font-size: 1rem; }

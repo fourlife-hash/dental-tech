@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import DeliveryNotePrint from './DeliveryNotePrint.jsx';
 import { createDeliveryNote, updateDeliveryNote } from '../api.js';
 
@@ -10,23 +10,21 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function calcTotals(rows) {
-  const subtotalGiko = rows.reduce((s, r) => {
-    return (r.category === '保' || r.category === '自') ? s + r.unitPrice * r.quantity : s;
+function calcTotals(items) {
+  const subtotalGiko = items.reduce((s, item) => {
+    return (item.category === '保' || item.category === '自') ? s + item.unitPrice * item.quantity : s;
   }, 0);
-  const subtotalMaterial = rows.reduce((s, r) => {
-    return r.category === '材' ? s + r.unitPrice * r.quantity : s;
+  const subtotalMaterial = items.reduce((s, item) => {
+    return item.category === '材' ? s + item.unitPrice * item.quantity : s;
   }, 0);
   const tax   = Math.round((subtotalGiko + subtotalMaterial) * 0.1);
   const total = subtotalGiko + subtotalMaterial + tax;
   return { subtotalGiko, subtotalMaterial, tax, total };
 }
 
-function makeRow(overrides = {}) {
+function makeItem(overrides = {}) {
   return {
     id: crypto.randomUUID(),
-    patientName: '',
-    shiki: '',
     gikobutsuName: '',
     category: '',
     unitPrice: 0,
@@ -35,135 +33,109 @@ function makeRow(overrides = {}) {
   };
 }
 
-export default function DeliveryNoteForm({ initialNote, onSaved }) {
-  const [clinics, setClinics]           = useState([]);
-  const [products, setProducts]         = useState([]);
-  const [prices, setPrices]             = useState([]);
-  const [clinicId, setClinicId]         = useState('');
-  const [clinicName, setClinicName]     = useState('');
-  const [deliveryDate, setDeliveryDate] = useState(todayStr());
-  const [rows, setRows]                 = useState([makeRow()]);
-  const [paraGram, setParaGram]         = useState('');
-  const [miroGram, setMiroGram]         = useState('');
-  const [saving, setSaving]             = useState(false);
-  const [printNote, setPrintNote]       = useState(null);
-  const [savedMsg, setSavedMsg]         = useState('');
-
+// Props:
+//   job         = { id, clinic, patient, shiki, gikobutsu, ... }  新規時
+//   clinicId    = 医院ID（料金表取得用）
+//   deliveryDate = 納品日文字列
+//   initialNote  = 既存納品書（修正時）
+//   onBack      = 戻るコールバック
+//   onSaved     = 保存完了コールバック
+export default function DeliveryNoteForm({ job, clinicId, deliveryDate: deliveryDateProp, initialNote, onBack, onSaved }) {
   const isEditing = Boolean(initialNote);
 
+  // 患者・医院は固定（変更不可）
+  const patientName = initialNote?.patientName || job?.patient || '';
+  const clinicName  = initialNote?.clinicName  || job?.clinic  || '';
+
+  const [products, setProducts]       = useState([]);
+  const [prices, setPrices]           = useState([]);
+  const [shiki, setShiki]             = useState(initialNote?.shiki || job?.shiki || '');
+  const [deliveryDate, setDeliveryDate] = useState(
+    initialNote?.deliveryDate || deliveryDateProp || todayStr()
+  );
+  const [items, setItems]             = useState(
+    initialNote?.rows?.length > 0
+      ? initialNote.rows.map(r => makeItem(r))
+      : []
+  );
+  const [paraGram, setParaGram]       = useState(
+    initialNote?.paraGram > 0 ? String(initialNote.paraGram) : ''
+  );
+  const [miroGram, setMiroGram]       = useState(
+    initialNote?.miroGram > 0 ? String(initialNote.miroGram) : ''
+  );
+  const [saving, setSaving]           = useState(false);
+  const [printNote, setPrintNote]     = useState(null);
+  const [savedMsg, setSavedMsg]       = useState('');
+
+  // 初回のみジョブのgikobutsuをアイテムとして追加するフラグ
+  const didInitItems = useRef(false);
+
+  // 製品・料金マスタ取得
   useEffect(() => {
-    fetch('/api/clinics').then(r => r.json()).then(setClinics);
     fetch('/api/products').then(r => r.json()).then(setProducts);
+    if (clinicId) {
+      fetch(`/api/prices/${clinicId}`).then(r => r.json()).then(setPrices);
+    }
   }, []);
 
-  // 編集モード：clinics ロード後に既存納品書の内容をフォームへ反映
+  // 新規モード：製品ロード後、ジョブの技工物を初期アイテムとして設定（1回のみ）
   useEffect(() => {
-    if (!initialNote || clinics.length === 0) return;
-    const clinic = clinics.find(c => c.name === initialNote.clinicName);
-    setClinicId(clinic?.id || '');
-    setClinicName(initialNote.clinicName);
-    setDeliveryDate(initialNote.deliveryDate);
-    setParaGram(initialNote.paraGram > 0 ? String(initialNote.paraGram) : '');
-    setMiroGram(initialNote.miroGram > 0 ? String(initialNote.miroGram) : '');
-    setRows(
-      initialNote.rows.length > 0
-        ? initialNote.rows.map(r => makeRow(r))
-        : [makeRow()]
-    );
-    if (clinic?.id) {
-      fetch(`/api/prices/${clinic.id}`).then(r => r.json()).then(setPrices);
-    }
-  }, [initialNote, clinics]);
+    if (isEditing || didInitItems.current || products.length === 0) return;
+    didInitItems.current = true;
+    if (!job?.gikobutsu) return;
+    const prod = products.find(p => p.name === job.gikobutsu);
+    const priceEntry = prod ? prices.find(pr => pr.productId === prod.id) : null;
+    setItems([makeItem({
+      gikobutsuName: job.gikobutsu,
+      category:      prod ? (CAT_MAP[prod.category] || '') : '',
+      unitPrice:     priceEntry?.price || 0,
+    })]);
+  }, [products, prices]);
 
-  // 【機能1】医院名は任意フィルター。日付だけでも患者一覧を取得する
-  async function populateFromJobs(cName, date, priceList) {
-    if (!date) return;
-    const params = { date, done: 'true' };
-    if (cName) params.clinic = cName;
-    const qs = new URLSearchParams(params);
-    const matched = await fetch(`/api/jobs?${qs}`).then(r => r.json());
-    if (matched.length > 0) {
-      setRows(matched.map(j => {
-        const prod       = products.find(p => p.name === j.gikobutsu);
-        const priceEntry = prod ? priceList.find(pr => pr.productId === prod.id) : null;
-        return makeRow({
-          patientName:   j.patient,
-          shiki:         j.shiki || '',
-          gikobutsuName: j.gikobutsu || '',
-          category:      prod ? (CAT_MAP[prod.category] || '') : '',
-          unitPrice:     priceEntry?.price || 0,
-        });
-      }));
-    } else {
-      setRows([makeRow()]);
-    }
-  }
-
-  async function handleClinicChange(newId) {
-    setClinicId(newId);
-    const clinic = clinics.find(c => c.id === newId);
-    const name   = clinic?.name || '';
-    setClinicName(name);
-
-    let newPrices = [];
-    if (newId) {
-      newPrices = await fetch(`/api/prices/${newId}`).then(r => r.json());
-      setPrices(newPrices);
-    } else {
-      setPrices([]);
-    }
-    // 編集モードでは既存行を保持し、患者再取得は行わない
-    if (!isEditing && deliveryDate) {
-      await populateFromJobs(name, deliveryDate, newPrices);
-    }
-  }
-
-  async function handleDateChange(newDate) {
-    setDeliveryDate(newDate);
-    // 編集モードでは日付変更のみ（患者行は再取得しない）
-    if (!isEditing && newDate) {
-      await populateFromJobs(clinicName, newDate, prices);
-    }
-  }
-
-  function updateRow(id, field, rawValue) {
-    const value = (field === 'unitPrice' || field === 'quantity')
-      ? (parseInt(rawValue) || 0)
-      : rawValue;
-    setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
-  }
-
-  function addRow() { setRows(prev => [...prev, makeRow()]); }
-
-  function removeRow(id) { setRows(prev => prev.filter(r => r.id !== id)); }
-
-  function addProductRow(product) {
+  // 【バグ修正】料金表クリック → その患者のアイテムリストに追加（新しい患者行は追加しない）
+  function addItemFromProduct(product) {
     const priceEntry = prices.find(pr => pr.productId === product.id);
-    setRows(prev => [...prev, makeRow({
+    setItems(prev => [...prev, makeItem({
       gikobutsuName: product.name,
       category:      CAT_MAP[product.category] || '',
       unitPrice:     priceEntry?.price || 0,
     })]);
   }
 
-  const totals = calcTotals(rows);
+  function addEmptyItem() {
+    setItems(prev => [...prev, makeItem()]);
+  }
+
+  function removeItem(id) {
+    setItems(prev => prev.filter(item => item.id !== id));
+  }
+
+  function updateItem(id, field, rawValue) {
+    const value = (field === 'unitPrice' || field === 'quantity')
+      ? (parseInt(rawValue) || 0)
+      : rawValue;
+    setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  }
+
+  const totals = calcTotals(items);
 
   async function handleSave() {
-    if (!clinicName) { alert('医院名を選択してください'); return; }
+    if (!clinicName) { alert('医院名が不明です'); return; }
     setSaving(true);
     try {
       const payload = {
         clinicId:         clinicId || null,
         clinicName,
         deliveryDate,
-        rows: rows.map(r => ({
-          patientName:   r.patientName,
-          shiki:         r.shiki,
-          gikobutsuName: r.gikobutsuName,
-          category:      r.category,
-          unitPrice:     r.unitPrice,
-          quantity:      r.quantity,
-          amount:        r.unitPrice * r.quantity,
+        patientName,
+        shiki,
+        rows: items.map(item => ({
+          gikobutsuName: item.gikobutsuName,
+          category:      item.category,
+          unitPrice:     item.unitPrice,
+          quantity:      item.quantity,
+          amount:        item.unitPrice * item.quantity,
         })),
         paraGram:         parseFloat(paraGram) || 0,
         miroGram:         parseFloat(miroGram) || 0,
@@ -174,26 +146,12 @@ export default function DeliveryNoteForm({ initialNote, onSaved }) {
         : await createDeliveryNote(payload);
       onSaved?.();
       setPrintNote(note);
-      setSavedMsg(
-        isEditing
-          ? `納品書 No.${note.deliveryNo} を更新しました`
-          : `納品書 No.${note.deliveryNo} を発行しました`
-      );
+      setSavedMsg(`No.${note.deliveryNo} を${isEditing ? '更新' : '発行'}しました`);
     } catch {
       alert('保存に失敗しました');
     } finally {
       setSaving(false);
     }
-  }
-
-  function handleNewNote() {
-    setClinicId('');
-    setClinicName('');
-    setDeliveryDate(todayStr());
-    setRows([makeRow()]);
-    setParaGram('');
-    setMiroGram('');
-    setSavedMsg('');
   }
 
   const priceMap          = Object.fromEntries(prices.map(p => [p.productId, p.price]));
@@ -203,40 +161,51 @@ export default function DeliveryNoteForm({ initialNote, onSaved }) {
     <div className="dn-form-layout">
       {/* ── 左：入力エリア ── */}
       <div className="dn-left">
+        {/* 患者ヘッダー */}
+        <div className="dn-patient-header">
+          <div className="dn-patient-title">
+            <span className="dn-clinic-label">{clinicName}</span>
+            <span className="dn-patient-label">{patientName}</span>
+          </div>
+          <div className="dn-patient-fields">
+            <div className="dn-field-row">
+              <label>歯式</label>
+              <input
+                type="text"
+                value={shiki}
+                onChange={e => setShiki(e.target.value)}
+                placeholder="例: |7"
+                className="dn-shiki-input"
+              />
+            </div>
+            <div className="dn-field-row">
+              <label>納品日</label>
+              <input
+                type="date"
+                value={deliveryDate}
+                onChange={e => setDeliveryDate(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
         {isEditing && !savedMsg && (
           <div className="dn-edit-banner">
             納品書 No.{initialNote.deliveryNo} を修正中
           </div>
         )}
-
         {savedMsg && (
           <div className="dn-saved-banner">
             <span>{savedMsg}</span>
-            <button className="dn-new-btn" onClick={handleNewNote}>新規作成</button>
+            <button className="dn-new-btn" onClick={onBack}>一覧に戻る</button>
           </div>
         )}
 
-        <div className="dn-section">
-          <div className="dn-field-row">
-            <label>納品日</label>
-            <input type="date" value={deliveryDate} onChange={e => handleDateChange(e.target.value)} />
-          </div>
-          <div className="dn-field-row">
-            <label>医院名<span className="dn-optional">（任意・絞り込み）</span></label>
-            <select value={clinicId} onChange={e => handleClinicChange(e.target.value)}>
-              <option value="">全医院</option>
-              {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* 患者行テーブル */}
+        {/* 技工物テーブル */}
         <div className="dn-table-wrap">
           <table className="dn-table">
             <thead>
               <tr>
-                <th>患者名</th>
-                <th>歯式</th>
                 <th>技工物名</th>
                 <th>区分</th>
                 <th>単価</th>
@@ -246,32 +215,20 @@ export default function DeliveryNoteForm({ initialNote, onSaved }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map(row => (
-                <tr key={row.id}>
+              {items.map(item => (
+                <tr key={item.id}>
                   <td>
                     <input
-                      value={row.patientName}
-                      onChange={e => updateRow(row.id, 'patientName', e.target.value)}
-                      placeholder="患者名"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      value={row.shiki}
-                      onChange={e => updateRow(row.id, 'shiki', e.target.value)}
-                      placeholder="歯式"
-                      className="dn-shiki"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      value={row.gikobutsuName}
-                      onChange={e => updateRow(row.id, 'gikobutsuName', e.target.value)}
+                      value={item.gikobutsuName}
+                      onChange={e => updateItem(item.id, 'gikobutsuName', e.target.value)}
                       placeholder="技工物名"
                     />
                   </td>
                   <td>
-                    <select value={row.category} onChange={e => updateRow(row.id, 'category', e.target.value)}>
+                    <select
+                      value={item.category}
+                      onChange={e => updateItem(item.id, 'category', e.target.value)}
+                    >
                       <option value="">-</option>
                       {CAT_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -279,8 +236,8 @@ export default function DeliveryNoteForm({ initialNote, onSaved }) {
                   <td>
                     <input
                       type="number"
-                      value={row.unitPrice}
-                      onChange={e => updateRow(row.id, 'unitPrice', e.target.value)}
+                      value={item.unitPrice}
+                      onChange={e => updateItem(item.id, 'unitPrice', e.target.value)}
                       className="dn-num"
                       min="0"
                     />
@@ -288,23 +245,23 @@ export default function DeliveryNoteForm({ initialNote, onSaved }) {
                   <td>
                     <input
                       type="number"
-                      value={row.quantity}
-                      onChange={e => updateRow(row.id, 'quantity', e.target.value)}
+                      value={item.quantity}
+                      onChange={e => updateItem(item.id, 'quantity', e.target.value)}
                       className="dn-qty"
                       min="1"
                     />
                   </td>
                   <td className="dn-amount">
-                    {(row.unitPrice * row.quantity).toLocaleString()}
+                    {(item.unitPrice * item.quantity).toLocaleString()}
                   </td>
                   <td>
-                    <button className="del-btn" onClick={() => removeRow(row.id)}>✕</button>
+                    <button className="del-btn" onClick={() => removeItem(item.id)}>✕</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <button className="dn-add-row-btn" onClick={addRow}>＋ 行を追加</button>
+          <button className="dn-add-row-btn" onClick={addEmptyItem}>＋ 行を追加</button>
         </div>
 
         {/* 金属使用量 */}
@@ -348,25 +305,27 @@ export default function DeliveryNoteForm({ initialNote, onSaved }) {
           </div>
         </div>
 
+        {/* ボタン */}
         <div className="dn-actions">
+          <button className="cancel-btn" onClick={onBack}>← 戻る</button>
           <button
             className="submit-btn"
             onClick={handleSave}
-            disabled={saving || !clinicName}
+            disabled={saving}
           >
-            {saving ? '保存中...' : isEditing ? '更新して再印刷' : '保存して発行'}
+            {saving ? '保存中...' : isEditing ? '更新して再印刷' : '保存して印刷'}
           </button>
         </div>
       </div>
 
-      {/* ── 右：料金表 ── */}
+      {/* ── 右：料金表（クリックでアイテム追加） ── */}
       <div className="dn-right">
         <div className="card-header">
           <h3>{clinicName ? `${clinicName} 料金表` : '料金表'}</h3>
         </div>
         {!clinicId && (
           <p className="dn-price-hint" style={{ padding: '0.75rem' }}>
-            医院を選択すると料金表が表示されます
+            医院が未登録のため料金表を表示できません
           </p>
         )}
         <div className="dn-price-list">
@@ -374,8 +333,8 @@ export default function DeliveryNoteForm({ initialNote, onSaved }) {
             <div
               key={p.id}
               className="dn-price-item"
-              onDoubleClick={() => addProductRow(p)}
-              title="ダブルクリックで患者行に追加"
+              onClick={() => addItemFromProduct(p)}
+              title="クリックで技工物リストに追加"
             >
               <span className="dn-price-name">{p.name}</span>
               <span className="dn-price-cat">{CAT_MAP[p.category] || '-'}</span>
@@ -386,7 +345,7 @@ export default function DeliveryNoteForm({ initialNote, onSaved }) {
           ))}
         </div>
         {clinicId && (
-          <p className="dn-price-hint">ダブルクリックで患者行に追加</p>
+          <p className="dn-price-hint">クリックで技工物リストに追加</p>
         )}
       </div>
 

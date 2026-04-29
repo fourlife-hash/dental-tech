@@ -524,6 +524,8 @@ async function initDb() {
       clinic_id         TEXT,
       clinic_name       TEXT NOT NULL,
       delivery_date     TEXT NOT NULL,
+      patient_name      TEXT NOT NULL DEFAULT '',
+      shiki             TEXT NOT NULL DEFAULT '',
       rows              JSONB NOT NULL DEFAULT '[]',
       para_gram         NUMERIC NOT NULL DEFAULT 0,
       miro_gram         NUMERIC NOT NULL DEFAULT 0,
@@ -534,6 +536,9 @@ async function initDb() {
       created_at        TEXT NOT NULL
     )
   `);
+  // 既存テーブルへのカラム追加（idempotent）
+  await pool.query(`ALTER TABLE delivery_notes ADD COLUMN IF NOT EXISTS patient_name TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE delivery_notes ADD COLUMN IF NOT EXISTS shiki TEXT NOT NULL DEFAULT ''`);
 
   // 医院名の表記揺れを修正（既存DBデータ対応）
   await pool.query("UPDATE jobs SET clinic = 'クロイ歯科医院' WHERE clinic = 'クロイD・C'");
@@ -610,6 +615,8 @@ function deliveryNoteFromRow(r) {
     clinicId:         r.clinic_id,
     clinicName:       r.clinic_name,
     deliveryDate:     r.delivery_date,
+    patientName:      r.patient_name || '',
+    shiki:            r.shiki || '',
     rows:             Array.isArray(r.rows) ? r.rows : JSON.parse(r.rows || '[]'),
     paraGram:         parseFloat(r.para_gram) || 0,
     miroGram:         parseFloat(r.miro_gram) || 0,
@@ -815,7 +822,8 @@ app.get('/api/delivery-notes/:id', async (req, res) => {
 });
 
 app.post('/api/delivery-notes', async (req, res) => {
-  const { clinicId, clinicName, deliveryDate, rows, paraGram, miroGram,
+  const { clinicId, clinicName, deliveryDate, patientName, shiki,
+          rows, paraGram, miroGram,
           subtotalGiko, subtotalMaterial, tax, total } = req.body;
   if (!clinicName || !deliveryDate) {
     return res.status(400).json({ error: '必須項目が不足しています' });
@@ -831,10 +839,12 @@ app.post('/api/delivery-notes', async (req, res) => {
     await pool.query(
       `INSERT INTO delivery_notes
          (id, delivery_no, clinic_id, clinic_name, delivery_date,
+          patient_name, shiki,
           rows, para_gram, miro_gram, subtotal_giko, subtotal_material, tax, total, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
       [
         id, deliveryNo, clinicId || null, clinicName, deliveryDate,
+        patientName || '', shiki || '',
         JSON.stringify(rows || []),
         paraGram || 0, miroGram || 0,
         subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
@@ -851,7 +861,8 @@ app.post('/api/delivery-notes', async (req, res) => {
 
 app.put('/api/delivery-notes/:id', async (req, res) => {
   const { id } = req.params;
-  const { clinicId, clinicName, deliveryDate, rows, paraGram, miroGram,
+  const { clinicId, clinicName, deliveryDate, patientName, shiki,
+          rows, paraGram, miroGram,
           subtotalGiko, subtotalMaterial, tax, total } = req.body;
   if (!clinicName || !deliveryDate) {
     return res.status(400).json({ error: '必須項目が不足しています' });
@@ -860,11 +871,13 @@ app.put('/api/delivery-notes/:id', async (req, res) => {
     const result = await pool.query(
       `UPDATE delivery_notes SET
          clinic_id=$1, clinic_name=$2, delivery_date=$3,
-         rows=$4, para_gram=$5, miro_gram=$6,
-         subtotal_giko=$7, subtotal_material=$8, tax=$9, total=$10
-       WHERE id=$11 RETURNING *`,
+         patient_name=$4, shiki=$5,
+         rows=$6, para_gram=$7, miro_gram=$8,
+         subtotal_giko=$9, subtotal_material=$10, tax=$11, total=$12
+       WHERE id=$13 RETURNING *`,
       [
         clinicId || null, clinicName, deliveryDate,
+        patientName || '', shiki || '',
         JSON.stringify(rows || []),
         paraGram || 0, miroGram || 0,
         subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
