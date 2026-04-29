@@ -1,14 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import DeliveryNotePrint from './DeliveryNotePrint.jsx';
-import { createDeliveryNote, updateDeliveryNote, fetchDeliveryNotes } from '../api.js';
+import { createDeliveryNote, updateDeliveryNote } from '../api.js';
 
 const CAT_MAP = { '保険技工': '保', '自費技工': '自', '材料': '材', '預かり': '預' };
 const CAT_OPTIONS = ['保', '自', '材', '預'];
-
-function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
 
 function calcTotals(items) {
   const subtotalGiko = items.reduce((s, item) => {
@@ -34,45 +28,48 @@ function makeItem(overrides = {}) {
 }
 
 // Props:
-//   job         = { id, clinic, patient, shiki, gikobutsu, ... }  新規時
-//   clinicId    = 医院ID（料金表取得用）
-//   deliveryDate = 納品日文字列
-//   initialNote  = 既存納品書（修正時）
-//   onBack      = 戻るコールバック
-//   onSaved     = 保存完了コールバック
-export default function DeliveryNoteForm({ job, clinicId, deliveryDate: deliveryDateProp, initialNote, onBack, onSaved }) {
+//   job          = ジョブ（患者一覧から選択）
+//   clinicId     = 医院ID
+//   deliveryDate = 納品日
+//   initialNote  = 既存納品書（発行済み一覧からの修正）
+//   existingNote = 保存済み納品書（患者一覧から再選択した場合に渡される）
+//   onBack       = 保存せず戻るコールバック
+//   onSaved      = 保存完了コールバック（親が一覧更新＋画面遷移を行う）
+export default function DeliveryNoteForm({
+  job, clinicId, deliveryDate: deliveryDateProp,
+  initialNote, existingNote,
+  onBack, onSaved,
+}) {
   const isEditing = Boolean(initialNote);
 
-  // 患者・医院は固定（変更不可）
-  const patientName = initialNote?.patientName || job?.patient || '';
-  const clinicName  = initialNote?.clinicName  || job?.clinic  || '';
+  // sourceNote: 初期値の取得源（編集モードの既存ノート or 患者一覧から戻った保存済みノート）
+  const sourceNote = initialNote || existingNote;
 
-  const [products, setProducts]       = useState([]);
-  const [prices, setPrices]           = useState([]);
-  const [shiki, setShiki]             = useState(initialNote?.shiki || job?.shiki || '');
+  const patientName = sourceNote?.patientName || job?.patient || '';
+  const clinicName  = sourceNote?.clinicName  || job?.clinic  || '';
+
+  const [products, setProducts]         = useState([]);
+  const [prices, setPrices]             = useState([]);
+  const [shiki, setShiki]               = useState(sourceNote?.shiki || job?.shiki || '');
   const [deliveryDate, setDeliveryDate] = useState(
-    initialNote?.deliveryDate || deliveryDateProp || todayStr()
+    sourceNote?.deliveryDate || deliveryDateProp || ''
   );
-  const [items, setItems]             = useState(
-    initialNote?.rows?.length > 0
-      ? initialNote.rows.map(r => makeItem(r))
+  const [items, setItems]   = useState(
+    sourceNote?.rows?.length > 0
+      ? sourceNote.rows.map(r => makeItem(r))
       : []
   );
-  const [paraGram, setParaGram]       = useState(
-    initialNote?.paraGram > 0 ? String(initialNote.paraGram) : ''
+  const [paraGram, setParaGram] = useState(
+    sourceNote?.paraGram > 0 ? String(sourceNote.paraGram) : ''
   );
-  const [miroGram, setMiroGram]       = useState(
-    initialNote?.miroGram > 0 ? String(initialNote.miroGram) : ''
+  const [miroGram, setMiroGram] = useState(
+    sourceNote?.miroGram > 0 ? String(sourceNote.miroGram) : ''
   );
-  const [saving, setSaving]           = useState(false);
-  const [printNotes, setPrintNotes]   = useState(null); // 配列（同医院同日の全件）
-  const [savedBatch, setSavedBatch]   = useState(null); // 保存済みバッチ（再印刷用）
-  const [savedMsg, setSavedMsg]       = useState('');
+  const [saving, setSaving] = useState(false);
 
-  // 初回のみジョブのgikobutsuをアイテムとして追加するフラグ
+  // 初回のみジョブのgikobutsuをアイテムとして追加（sourceNoteがない場合のみ）
   const didInitItems = useRef(false);
 
-  // 製品・料金マスタ取得
   useEffect(() => {
     fetch('/api/products').then(r => r.json()).then(setProducts);
     if (clinicId) {
@@ -80,9 +77,8 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
     }
   }, []);
 
-  // 新規モード：製品ロード後、ジョブの技工物を初期アイテムとして設定（1回のみ）
   useEffect(() => {
-    if (isEditing || didInitItems.current || products.length === 0) return;
+    if (sourceNote || didInitItems.current || products.length === 0) return;
     didInitItems.current = true;
     if (!job?.gikobutsu) return;
     const prod = products.find(p => p.name === job.gikobutsu);
@@ -94,7 +90,7 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
     })]);
   }, [products, prices]);
 
-  // 【バグ修正】料金表クリック → その患者のアイテムリストに追加（新しい患者行は追加しない）
+  // 料金表クリック → この患者の技工物リストに追加（患者行は追加しない）
   function addItemFromProduct(product) {
     const priceEntry = prices.find(pr => pr.productId === product.id);
     setItems(prev => [...prev, makeItem({
@@ -104,13 +100,8 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
     })]);
   }
 
-  function addEmptyItem() {
-    setItems(prev => [...prev, makeItem()]);
-  }
-
-  function removeItem(id) {
-    setItems(prev => prev.filter(item => item.id !== id));
-  }
+  function addEmptyItem() { setItems(prev => [...prev, makeItem()]); }
+  function removeItem(id)  { setItems(prev => prev.filter(item => item.id !== id)); }
 
   function updateItem(id, field, rawValue) {
     const value = (field === 'unitPrice' || field === 'quantity')
@@ -126,7 +117,7 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
     setSaving(true);
     try {
       const payload = {
-        clinicId:         clinicId || null,
+        clinicId:    clinicId || null,
         clinicName,
         deliveryDate,
         patientName,
@@ -142,24 +133,16 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
         miroGram:         parseFloat(miroGram) || 0,
         ...totals,
       };
-      const note = isEditing
-        ? await updateDeliveryNote(initialNote.id, payload)
-        : await createDeliveryNote(payload);
 
-      // 同医院・同日の全納品書を取得してまとめて印刷
-      let batchNotes = [note];
-      try {
-        const all = await fetchDeliveryNotes();
-        const filtered = all
-          .filter(n => n.clinicName === clinicName && n.deliveryDate === deliveryDate)
-          .sort((a, b) => a.deliveryNo.localeCompare(b.deliveryNo));
-        if (filtered.length > 0) batchNotes = filtered;
-      } catch { /* 取得失敗時は単件で印刷 */ }
+      if (isEditing) {
+        // 発行済み一覧からの修正 → 指定IDを更新
+        await updateDeliveryNote(initialNote.id, payload);
+      } else {
+        // 患者一覧から → サーバー側で同一clinic+date+patientをupsert
+        await createDeliveryNote(payload);
+      }
 
-      onSaved?.();
-      setSavedBatch(batchNotes);  // 再印刷用に保持
-      setPrintNotes(batchNotes);
-      setSavedMsg(`No.${note.deliveryNo} を${isEditing ? '更新' : '発行'}しました`);
+      onSaved?.(); // 親が保存済み一覧を更新して患者一覧に戻る
     } catch {
       alert('保存に失敗しました');
     } finally {
@@ -202,22 +185,9 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
           </div>
         </div>
 
-        {isEditing && !savedMsg && (
+        {isEditing && (
           <div className="dn-edit-banner">
             納品書 No.{initialNote.deliveryNo} を修正中
-          </div>
-        )}
-        {savedMsg && (
-          <div className="dn-saved-banner">
-            <span>{savedMsg}</span>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {savedBatch && (
-                <button className="edit-btn" onClick={() => setPrintNotes(savedBatch)}>
-                  印刷プレビュー
-                </button>
-              )}
-              <button className="dn-new-btn" onClick={onBack}>一覧に戻る</button>
-            </div>
           </div>
         )}
 
@@ -289,22 +259,14 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
           <span className="dn-metal-label">金属使用量：</span>
           <label>
             パラ&nbsp;
-            <input
-              type="number" step="0.1" min="0"
-              value={paraGram}
-              onChange={e => setParaGram(e.target.value)}
-              className="dn-gram"
-            />
+            <input type="number" step="0.1" min="0" value={paraGram}
+              onChange={e => setParaGram(e.target.value)} className="dn-gram" />
             g
           </label>
           <label>
             ミロ&nbsp;
-            <input
-              type="number" step="0.1" min="0"
-              value={miroGram}
-              onChange={e => setMiroGram(e.target.value)}
-              className="dn-gram"
-            />
+            <input type="number" step="0.1" min="0" value={miroGram}
+              onChange={e => setMiroGram(e.target.value)} className="dn-gram" />
             g
           </label>
         </div>
@@ -331,17 +293,14 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
           <button
             className="submit-btn"
             onClick={handleSave}
-            disabled={saving || (!isEditing && !!savedMsg)}
+            disabled={saving}
           >
-            {saving ? '保存中...'
-              : isEditing ? '更新して再印刷'
-              : savedMsg  ? '発行済み'
-              : '保存して印刷'}
+            {saving ? '保存中...' : isEditing ? '更新' : '保存'}
           </button>
         </div>
       </div>
 
-      {/* ── 右：料金表（クリックでアイテム追加） ── */}
+      {/* ── 右：料金表（クリックで技工物追加） ── */}
       <div className="dn-right">
         <div className="card-header">
           <h3>{clinicName ? `${clinicName} 料金表` : '料金表'}</h3>
@@ -371,14 +330,6 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
           <p className="dn-price-hint">クリックで技工物リストに追加</p>
         )}
       </div>
-
-      {/* 印刷オーバーレイ（同医院同日の全患者を一括印刷） */}
-      {printNotes && (
-        <DeliveryNotePrint
-          notes={printNotes}
-          onClose={() => setPrintNotes(null)}
-        />
-      )}
     </div>
   );
 }
