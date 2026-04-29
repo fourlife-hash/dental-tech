@@ -4,8 +4,9 @@ import DeliveryNoteList from './DeliveryNoteList.jsx';
 import { fetchDeliveryNotes } from '../api.js';
 
 export default function DeliveryNote() {
-  const [subTab, setSubTab] = useState('new');
-  const [notes, setNotes]   = useState([]);
+  const [subTab, setSubTab]         = useState('new');
+  const [notes, setNotes]           = useState([]);
+  const [editingNote, setEditingNote] = useState(null);
 
   useEffect(() => { loadNotes(); }, []);
 
@@ -14,12 +15,22 @@ export default function DeliveryNote() {
     catch (e) { console.error(e); }
   }
 
+  function handleEdit(note) {
+    setEditingNote(note);
+    setSubTab('new');
+  }
+
+  function handleSaved() {
+    setEditingNote(null);
+    loadNotes();
+  }
+
   return (
     <div className="dn-container">
       <div className="tab-row">
         <button
           className={`tab-btn${subTab === 'new' ? ' active' : ''}`}
-          onClick={() => setSubTab('new')}
+          onClick={() => { setSubTab('new'); setEditingNote(null); }}
         >新規作成</button>
         <button
           className={`tab-btn${subTab === 'list' ? ' active' : ''}`}
@@ -28,9 +39,13 @@ export default function DeliveryNote() {
       </div>
 
       {subTab === 'new' ? (
-        <DeliveryNoteForm onSaved={loadNotes} />
+        <DeliveryNoteForm
+          key={editingNote?.id || 'new'}
+          initialNote={editingNote}
+          onSaved={handleSaved}
+        />
       ) : (
-        <DeliveryNoteList notes={notes} onReload={loadNotes} />
+        <DeliveryNoteList notes={notes} onReload={loadNotes} onEdit={handleEdit} />
       )}
     </div>
   );

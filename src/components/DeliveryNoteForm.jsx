@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import DeliveryNotePrint from './DeliveryNotePrint.jsx';
-import { createDeliveryNote } from '../api.js';
+import { createDeliveryNote, updateDeliveryNote } from '../api.js';
 
 const CAT_MAP = { '保険技工': '保', '自費技工': '自', '材料': '材', '預かり': '預' };
 const CAT_OPTIONS = ['保', '自', '材', '預'];
@@ -35,48 +35,52 @@ function makeRow(overrides = {}) {
   };
 }
 
-export default function DeliveryNoteForm({ onSaved }) {
-  const [clinics, setClinics]         = useState([]);
-  const [products, setProducts]       = useState([]);
-  const [prices, setPrices]           = useState([]);
-  const [clinicId, setClinicId]       = useState('');
-  const [clinicName, setClinicName]   = useState('');
+export default function DeliveryNoteForm({ initialNote, onSaved }) {
+  const [clinics, setClinics]           = useState([]);
+  const [products, setProducts]         = useState([]);
+  const [prices, setPrices]             = useState([]);
+  const [clinicId, setClinicId]         = useState('');
+  const [clinicName, setClinicName]     = useState('');
   const [deliveryDate, setDeliveryDate] = useState(todayStr());
-  const [rows, setRows]               = useState([makeRow()]);
-  const [paraGram, setParaGram]       = useState('');
-  const [miroGram, setMiroGram]       = useState('');
-  const [saving, setSaving]           = useState(false);
-  const [printNote, setPrintNote]     = useState(null);
-  const [savedMsg, setSavedMsg]       = useState('');
+  const [rows, setRows]                 = useState([makeRow()]);
+  const [paraGram, setParaGram]         = useState('');
+  const [miroGram, setMiroGram]         = useState('');
+  const [saving, setSaving]             = useState(false);
+  const [printNote, setPrintNote]       = useState(null);
+  const [savedMsg, setSavedMsg]         = useState('');
+
+  const isEditing = Boolean(initialNote);
 
   useEffect(() => {
     fetch('/api/clinics').then(r => r.json()).then(setClinics);
     fetch('/api/products').then(r => r.json()).then(setProducts);
   }, []);
 
-  async function handleClinicChange(newId) {
-    setClinicId(newId);
-    const clinic = clinics.find(c => c.id === newId);
-    const name   = clinic?.name || '';
-    setClinicName(name);
-
-    let newPrices = [];
-    if (newId) {
-      newPrices = await fetch(`/api/prices/${newId}`).then(r => r.json());
-      setPrices(newPrices);
-    } else {
-      setPrices([]);
+  // 編集モード：clinics ロード後に既存納品書の内容をフォームへ反映
+  useEffect(() => {
+    if (!initialNote || clinics.length === 0) return;
+    const clinic = clinics.find(c => c.name === initialNote.clinicName);
+    setClinicId(clinic?.id || '');
+    setClinicName(initialNote.clinicName);
+    setDeliveryDate(initialNote.deliveryDate);
+    setParaGram(initialNote.paraGram > 0 ? String(initialNote.paraGram) : '');
+    setMiroGram(initialNote.miroGram > 0 ? String(initialNote.miroGram) : '');
+    setRows(
+      initialNote.rows.length > 0
+        ? initialNote.rows.map(r => makeRow(r))
+        : [makeRow()]
+    );
+    if (clinic?.id) {
+      fetch(`/api/prices/${clinic.id}`).then(r => r.json()).then(setPrices);
     }
-    if (name && deliveryDate) populateFromJobs(name, deliveryDate, newPrices);
-  }
+  }, [initialNote, clinics]);
 
-  async function handleDateChange(newDate) {
-    setDeliveryDate(newDate);
-    if (clinicName && newDate) await populateFromJobs(clinicName, newDate, prices);
-  }
-
+  // 【機能1】医院名は任意フィルター。日付だけでも患者一覧を取得する
   async function populateFromJobs(cName, date, priceList) {
-    const qs = new URLSearchParams({ clinic: cName, date, done: 'true' });
+    if (!date) return;
+    const params = { date, done: 'true' };
+    if (cName) params.clinic = cName;
+    const qs = new URLSearchParams(params);
     const matched = await fetch(`/api/jobs?${qs}`).then(r => r.json());
     if (matched.length > 0) {
       setRows(matched.map(j => {
@@ -92,6 +96,33 @@ export default function DeliveryNoteForm({ onSaved }) {
       }));
     } else {
       setRows([makeRow()]);
+    }
+  }
+
+  async function handleClinicChange(newId) {
+    setClinicId(newId);
+    const clinic = clinics.find(c => c.id === newId);
+    const name   = clinic?.name || '';
+    setClinicName(name);
+
+    let newPrices = [];
+    if (newId) {
+      newPrices = await fetch(`/api/prices/${newId}`).then(r => r.json());
+      setPrices(newPrices);
+    } else {
+      setPrices([]);
+    }
+    // 編集モードでは既存行を保持し、患者再取得は行わない
+    if (!isEditing && deliveryDate) {
+      await populateFromJobs(name, deliveryDate, newPrices);
+    }
+  }
+
+  async function handleDateChange(newDate) {
+    setDeliveryDate(newDate);
+    // 編集モードでは日付変更のみ（患者行は再取得しない）
+    if (!isEditing && newDate) {
+      await populateFromJobs(clinicName, newDate, prices);
     }
   }
 
@@ -121,7 +152,7 @@ export default function DeliveryNoteForm({ onSaved }) {
     if (!clinicName) { alert('医院名を選択してください'); return; }
     setSaving(true);
     try {
-      const note = await createDeliveryNote({
+      const payload = {
         clinicId:         clinicId || null,
         clinicName,
         deliveryDate,
@@ -137,10 +168,17 @@ export default function DeliveryNoteForm({ onSaved }) {
         paraGram:         parseFloat(paraGram) || 0,
         miroGram:         parseFloat(miroGram) || 0,
         ...totals,
-      });
+      };
+      const note = isEditing
+        ? await updateDeliveryNote(initialNote.id, payload)
+        : await createDeliveryNote(payload);
       onSaved?.();
       setPrintNote(note);
-      setSavedMsg(`納品書 No.${note.deliveryNo} を発行しました`);
+      setSavedMsg(
+        isEditing
+          ? `納品書 No.${note.deliveryNo} を更新しました`
+          : `納品書 No.${note.deliveryNo} を発行しました`
+      );
     } catch {
       alert('保存に失敗しました');
     } finally {
@@ -158,13 +196,19 @@ export default function DeliveryNoteForm({ onSaved }) {
     setSavedMsg('');
   }
 
-  const priceMap         = Object.fromEntries(prices.map(p => [p.productId, p.price]));
+  const priceMap          = Object.fromEntries(prices.map(p => [p.productId, p.price]));
   const productsWithPrice = products.map(p => ({ ...p, price: priceMap[p.id] ?? null }));
 
   return (
     <div className="dn-form-layout">
       {/* ── 左：入力エリア ── */}
       <div className="dn-left">
+        {isEditing && !savedMsg && (
+          <div className="dn-edit-banner">
+            納品書 No.{initialNote.deliveryNo} を修正中
+          </div>
+        )}
+
         {savedMsg && (
           <div className="dn-saved-banner">
             <span>{savedMsg}</span>
@@ -174,15 +218,15 @@ export default function DeliveryNoteForm({ onSaved }) {
 
         <div className="dn-section">
           <div className="dn-field-row">
-            <label>医院名</label>
-            <select value={clinicId} onChange={e => handleClinicChange(e.target.value)}>
-              <option value="">選択してください</option>
-              {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div className="dn-field-row">
             <label>納品日</label>
             <input type="date" value={deliveryDate} onChange={e => handleDateChange(e.target.value)} />
+          </div>
+          <div className="dn-field-row">
+            <label>医院名<span className="dn-optional">（任意・絞り込み）</span></label>
+            <select value={clinicId} onChange={e => handleClinicChange(e.target.value)}>
+              <option value="">全医院</option>
+              {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </div>
         </div>
 
@@ -310,7 +354,7 @@ export default function DeliveryNoteForm({ onSaved }) {
             onClick={handleSave}
             disabled={saving || !clinicName}
           >
-            {saving ? '保存中...' : '保存して発行'}
+            {saving ? '保存中...' : isEditing ? '更新して再印刷' : '保存して発行'}
           </button>
         </div>
       </div>

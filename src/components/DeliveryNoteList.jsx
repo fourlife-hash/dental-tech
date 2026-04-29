@@ -7,7 +7,7 @@ function fmt(str) {
   return `${y}/${m}/${d}`;
 }
 
-export default function DeliveryNoteList({ notes }) {
+export default function DeliveryNoteList({ notes, onEdit }) {
   const [printNote, setPrintNote] = useState(null);
 
   return (
@@ -38,8 +38,9 @@ export default function DeliveryNoteList({ notes }) {
                 <td className="dn-list-num">¥{n.subtotalMaterial.toLocaleString()}</td>
                 <td className="dn-list-num">¥{n.tax.toLocaleString()}</td>
                 <td className="dn-list-num dn-list-total">¥{n.total.toLocaleString()}</td>
-                <td>
+                <td className="dn-list-actions">
                   <button className="edit-btn" onClick={() => setPrintNote(n)}>再印刷</button>
+                  <button className="edit-btn" onClick={() => onEdit(n)}>修正</button>
                 </td>
               </tr>
             ))}

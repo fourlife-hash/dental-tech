@@ -60,3 +60,13 @@ export async function createDeliveryNote(data) {
   if (!res.ok) throw new Error('create failed');
   return res.json();
 }
+
+export async function updateDeliveryNote(id, data) {
+  const res = await fetch(`${BASE}/delivery-notes/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('update failed');
+  return res.json();
+}

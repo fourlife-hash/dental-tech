@@ -806,3 +806,27 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
 
   .no-print { display: none !important; }
 }
+
+/* ── 納品書フォーム追加スタイル ── */
+.dn-edit-banner {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.dn-optional {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #64748b;
+  margin-left: 0.25rem;
+}
+
+.dn-list-actions {
+  display: flex;
+  gap: 0.4rem;
+}

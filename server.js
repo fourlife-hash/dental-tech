@@ -849,6 +849,36 @@ app.post('/api/delivery-notes', async (req, res) => {
   }
 });
 
+app.put('/api/delivery-notes/:id', async (req, res) => {
+  const { id } = req.params;
+  const { clinicId, clinicName, deliveryDate, rows, paraGram, miroGram,
+          subtotalGiko, subtotalMaterial, tax, total } = req.body;
+  if (!clinicName || !deliveryDate) {
+    return res.status(400).json({ error: '必須項目が不足しています' });
+  }
+  try {
+    const result = await pool.query(
+      `UPDATE delivery_notes SET
+         clinic_id=$1, clinic_name=$2, delivery_date=$3,
+         rows=$4, para_gram=$5, miro_gram=$6,
+         subtotal_giko=$7, subtotal_material=$8, tax=$9, total=$10
+       WHERE id=$11 RETURNING *`,
+      [
+        clinicId || null, clinicName, deliveryDate,
+        JSON.stringify(rows || []),
+        paraGram || 0, miroGram || 0,
+        subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
+        id,
+      ]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: '納品書が見つかりません' });
+    res.json(deliveryNoteFromRow(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
 // ─── SPA fallback ────────────────────────────────────────────────────────────
 
 app.get('*', (req, res) => {
