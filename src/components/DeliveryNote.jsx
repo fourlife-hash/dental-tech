@@ -148,7 +148,7 @@ export default function DeliveryNote() {
       {subTab === 'new' && (
         <>
           {/* STEP 1: 日付選択 */}
-          {screen === 'date' && (
+          {screen === 'date' && !formData && (
             <div className="dn-date-screen">
               <p className="dn-date-prompt">納品日を選択してください</p>
               <input
@@ -162,7 +162,7 @@ export default function DeliveryNote() {
           )}
 
           {/* STEP 2: 患者一覧（医院別） */}
-          {screen === 'patients' && (
+          {screen === 'patients' && !formData && (
             <div className="dn-patients-screen">
               <div className="dn-patients-header">
                 <button
@@ -221,7 +221,7 @@ export default function DeliveryNote() {
           )}
 
           {/* STEP 3: 技工物入力フォーム（1患者） */}
-          {screen === 'form' && formData && (
+          {formData && (
             <DeliveryNoteForm
               key={formData.initialNote?.id || formData.existingNote?.id || formData.job?.id || 'form'}
               job={formData.job || null}
