@@ -35,7 +35,7 @@ export default function DeliveryNote() {
     if (!date) return;
     setLoadingJobs(true);
     try {
-      const qs = new URLSearchParams({ date, done: 'true' });
+      const qs = new URLSearchParams({ date });
       const jobs = await fetch(`/api/jobs?${qs}`).then(r => r.json());
       const grouped = {};
       for (const job of jobs) {

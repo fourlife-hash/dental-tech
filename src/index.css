@@ -1014,3 +1014,12 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
   margin-bottom: 0.3mm;
   font-family: monospace;
 }
+
+/* ── 料金表スクロール固定修正（問題1）── */
+/* 左右パネルを独立スクロールさせるため、フォームレイアウトに固定高さを設定 */
+.dn-form-layout {
+  height: calc(100vh - 9rem);
+  overflow: hidden;
+}
+.dn-left  { overflow-y: auto; }
+.dn-right { overflow-y: auto; }
