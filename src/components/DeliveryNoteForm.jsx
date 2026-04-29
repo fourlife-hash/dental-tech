@@ -51,9 +51,7 @@ export default function DeliveryNoteForm({
   const [products, setProducts]         = useState([]);
   const [prices, setPrices]             = useState([]);
   const [shiki, setShiki]               = useState(sourceNote?.shiki || job?.shiki || '');
-  const [deliveryDate, setDeliveryDate] = useState(
-    sourceNote?.deliveryDate || deliveryDateProp || ''
-  );
+  const [date, setDate] = useState('');
   const [items, setItems]   = useState(
     sourceNote?.rows?.length > 0
       ? sourceNote.rows.map(r => makeItem(r))
@@ -103,7 +101,7 @@ export default function DeliveryNoteForm({
       const payload = {
         clinicId:    clinicId || null,
         clinicName,
-        deliveryDate,
+        deliveryDate: date,
         patientName,
         shiki,
         rows: items.map(item => ({
@@ -162,8 +160,8 @@ export default function DeliveryNoteForm({
               <label>納品日</label>
               <input
                 type="date"
-                value={deliveryDate}
-                onChange={e => setDeliveryDate(e.target.value)}
+                value={date}
+                onChange={e => { setDate(e.target.value); }}
               />
             </div>
           </div>
