@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createDeliveryNote, updateDeliveryNote } from '../api.js';
 
 const CAT_MAP = { '保険技工': '保', '自費技工': '自', '材料': '材', '預かり': '預' };
@@ -67,28 +67,12 @@ export default function DeliveryNoteForm({
   );
   const [saving, setSaving] = useState(false);
 
-  // 初回のみジョブのgikobutsuをアイテムとして追加（sourceNoteがない場合のみ）
-  const didInitItems = useRef(false);
-
   useEffect(() => {
     fetch('/api/products').then(r => r.json()).then(setProducts);
     if (clinicId) {
       fetch(`/api/prices/${clinicId}`).then(r => r.json()).then(setPrices);
     }
   }, []);
-
-  useEffect(() => {
-    if (sourceNote || didInitItems.current || products.length === 0) return;
-    didInitItems.current = true;
-    if (!job?.gikobutsu) return;
-    const prod = products.find(p => p.name === job.gikobutsu);
-    const priceEntry = prod ? prices.find(pr => pr.productId === prod.id) : null;
-    setItems([makeItem({
-      gikobutsuName: job.gikobutsu,
-      category:      prod ? (CAT_MAP[prod.category] || '') : '',
-      unitPrice:     priceEntry?.price || 0,
-    })]);
-  }, [products, prices]);
 
   // 料金表クリック → この患者の技工物リストに追加（患者行は追加しない）
   function addItemFromProduct(product) {
