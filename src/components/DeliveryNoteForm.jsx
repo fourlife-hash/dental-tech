@@ -66,6 +66,7 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
   );
   const [saving, setSaving]           = useState(false);
   const [printNotes, setPrintNotes]   = useState(null); // 配列（同医院同日の全件）
+  const [savedBatch, setSavedBatch]   = useState(null); // 保存済みバッチ（再印刷用）
   const [savedMsg, setSavedMsg]       = useState('');
 
   // 初回のみジョブのgikobutsuをアイテムとして追加するフラグ
@@ -156,6 +157,7 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
       } catch { /* 取得失敗時は単件で印刷 */ }
 
       onSaved?.();
+      setSavedBatch(batchNotes);  // 再印刷用に保持
       setPrintNotes(batchNotes);
       setSavedMsg(`No.${note.deliveryNo} を${isEditing ? '更新' : '発行'}しました`);
     } catch {
@@ -208,7 +210,14 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
         {savedMsg && (
           <div className="dn-saved-banner">
             <span>{savedMsg}</span>
-            <button className="dn-new-btn" onClick={onBack}>一覧に戻る</button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {savedBatch && (
+                <button className="edit-btn" onClick={() => setPrintNotes(savedBatch)}>
+                  印刷プレビュー
+                </button>
+              )}
+              <button className="dn-new-btn" onClick={onBack}>一覧に戻る</button>
+            </div>
           </div>
         )}
 
@@ -322,9 +331,12 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
           <button
             className="submit-btn"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || (!isEditing && !!savedMsg)}
           >
-            {saving ? '保存中...' : isEditing ? '更新して再印刷' : '保存して印刷'}
+            {saving ? '保存中...'
+              : isEditing ? '更新して再印刷'
+              : savedMsg  ? '発行済み'
+              : '保存して印刷'}
           </button>
         </div>
       </div>
