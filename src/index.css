@@ -946,3 +946,71 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
 }
 .dp-patient-label { font-weight: 600; color: #444; font-size: 0.8rem; }
 .dp-patient-name  { font-weight: 700; font-size: 1rem; }
+
+/* ── 納品書印刷レイアウト更新（ヘッダー左右入れ替え・仕様変更） ── */
+
+/* ヘッダー左：タイトル */
+.dp-title-left {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 1mm;
+}
+.dp-title {
+  font-size: 22pt !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.25em;
+  color: #1e3a5f !important;
+  border-bottom: 2.5pt solid #1e3a5f;
+  padding-bottom: 1.5mm;
+  line-height: 1.2;
+}
+
+/* ヘッダー右：会社情報 + 納品日 */
+.dp-company-right {
+  text-align: right;
+}
+.dp-delivery-date {
+  font-size: 9pt;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1.5mm;
+  letter-spacing: 0.05em;
+}
+.dp-company-name {
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  margin-bottom: 0.5mm;
+  color: #1e293b;
+}
+.dp-company-sub {
+  font-size: 7.5pt !important;
+  color: #444 !important;
+  line-height: 1.55;
+}
+
+/* 医院名（「御中」→「様」・下線付き） */
+.dp-clinic-line {
+  font-size: 12pt;
+  font-weight: 700;
+  border-bottom: 1.5px solid #000;
+  padding-bottom: 1.5mm;
+  margin-bottom: 3mm;
+  letter-spacing: 0.05em;
+}
+
+/* テーブル列幅（新仕様） */
+.dp-col-no-patient { width: 20%; }
+.dp-col-shiki      { width: 8%;  }
+.dp-col-giko       { width: 30%; }
+.dp-col-cat        { width: 7%;  }
+.dp-col-price      { width: 12%; }
+.dp-col-qty        { width: 7%;  }
+.dp-col-amount     { width: 16%; }
+
+/* 納品No（先頭行の小テキスト） */
+.dp-no {
+  font-size: 7pt;
+  color: #6b7280;
+  margin-bottom: 0.3mm;
+  font-family: monospace;
+}
