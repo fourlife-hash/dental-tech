@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import DeliveryNotePrint from './DeliveryNotePrint.jsx';
-import { createDeliveryNote, updateDeliveryNote } from '../api.js';
+import { createDeliveryNote, updateDeliveryNote, fetchDeliveryNotes } from '../api.js';
 
 const CAT_MAP = { '保険技工': '保', '自費技工': '自', '材料': '材', '預かり': '預' };
 const CAT_OPTIONS = ['保', '自', '材', '預'];
@@ -65,7 +65,7 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
     initialNote?.miroGram > 0 ? String(initialNote.miroGram) : ''
   );
   const [saving, setSaving]           = useState(false);
-  const [printNote, setPrintNote]     = useState(null);
+  const [printNotes, setPrintNotes]   = useState(null); // 配列（同医院同日の全件）
   const [savedMsg, setSavedMsg]       = useState('');
 
   // 初回のみジョブのgikobutsuをアイテムとして追加するフラグ
@@ -144,8 +144,19 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
       const note = isEditing
         ? await updateDeliveryNote(initialNote.id, payload)
         : await createDeliveryNote(payload);
+
+      // 同医院・同日の全納品書を取得してまとめて印刷
+      let batchNotes = [note];
+      try {
+        const all = await fetchDeliveryNotes();
+        const filtered = all
+          .filter(n => n.clinicName === clinicName && n.deliveryDate === deliveryDate)
+          .sort((a, b) => a.deliveryNo.localeCompare(b.deliveryNo));
+        if (filtered.length > 0) batchNotes = filtered;
+      } catch { /* 取得失敗時は単件で印刷 */ }
+
       onSaved?.();
-      setPrintNote(note);
+      setPrintNotes(batchNotes);
       setSavedMsg(`No.${note.deliveryNo} を${isEditing ? '更新' : '発行'}しました`);
     } catch {
       alert('保存に失敗しました');
@@ -349,11 +360,11 @@ export default function DeliveryNoteForm({ job, clinicId, deliveryDate: delivery
         )}
       </div>
 
-      {/* 印刷オーバーレイ */}
-      {printNote && (
+      {/* 印刷オーバーレイ（同医院同日の全患者を一括印刷） */}
+      {printNotes && (
         <DeliveryNotePrint
-          note={printNote}
-          onClose={() => setPrintNote(null)}
+          notes={printNotes}
+          onClose={() => setPrintNotes(null)}
         />
       )}
     </div>

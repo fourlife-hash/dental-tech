@@ -8,7 +8,15 @@ function fmt(str) {
 }
 
 export default function DeliveryNoteList({ notes, onEdit }) {
-  const [printNote, setPrintNote] = useState(null);
+  const [printNotes, setPrintNotes] = useState(null);
+
+  function handleReprint(n) {
+    // 同医院・同日の全納品書をまとめて印刷
+    const batch = notes
+      .filter(x => x.clinicName === n.clinicName && x.deliveryDate === n.deliveryDate)
+      .sort((a, b) => a.deliveryNo.localeCompare(b.deliveryNo));
+    setPrintNotes(batch.length > 0 ? batch : [n]);
+  }
 
   return (
     <div className="card-body">
@@ -21,6 +29,7 @@ export default function DeliveryNoteList({ notes, onEdit }) {
               <th>納品No</th>
               <th>納品日</th>
               <th>医院名</th>
+              <th>患者名</th>
               <th>技工合計</th>
               <th>材料合計</th>
               <th>消費税</th>
@@ -34,12 +43,13 @@ export default function DeliveryNoteList({ notes, onEdit }) {
                 <td className="dn-list-no">{n.deliveryNo}</td>
                 <td>{fmt(n.deliveryDate)}</td>
                 <td>{n.clinicName}</td>
+                <td>{n.patientName || '—'}</td>
                 <td className="dn-list-num">¥{n.subtotalGiko.toLocaleString()}</td>
                 <td className="dn-list-num">¥{n.subtotalMaterial.toLocaleString()}</td>
                 <td className="dn-list-num">¥{n.tax.toLocaleString()}</td>
                 <td className="dn-list-num dn-list-total">¥{n.total.toLocaleString()}</td>
                 <td className="dn-list-actions">
-                  <button className="edit-btn" onClick={() => setPrintNote(n)}>再印刷</button>
+                  <button className="edit-btn" onClick={() => handleReprint(n)}>再印刷</button>
                   <button className="edit-btn" onClick={() => onEdit(n)}>修正</button>
                 </td>
               </tr>
@@ -48,8 +58,8 @@ export default function DeliveryNoteList({ notes, onEdit }) {
         </table>
       )}
 
-      {printNote && (
-        <DeliveryNotePrint note={printNote} onClose={() => setPrintNote(null)} />
+      {printNotes && (
+        <DeliveryNotePrint notes={printNotes} onClose={() => setPrintNotes(null)} />
       )}
     </div>
   );
