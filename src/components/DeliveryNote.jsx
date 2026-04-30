@@ -162,7 +162,7 @@ export default function DeliveryNote() {
           )}
 
           {/* STEP 2: 患者一覧（医院別） */}
-          {screen === 'patients' && !formData && (
+          {screen === 'patients' && selectedDate && !formData && (
             <div className="dn-patients-screen">
               <div className="dn-patients-header">
                 <button
