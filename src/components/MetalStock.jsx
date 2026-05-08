@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
+import MetalReceiptPrint from './MetalReceiptPrint.jsx';
 
 const TX_TYPES = ['預かり', '使用', '返却'];
+
+function calcClinicBalance(allStocks, clinicName, metalType) {
+  return allStocks
+    .filter(s => s.clinicName === clinicName && s.metalType === metalType)
+    .reduce((acc, s) => s.transactionType === '預かり' ? acc + s.weight : acc - s.weight, 0);
+}
 
 export default function MetalStock() {
   const [stocks, setStocks]     = useState([]);
@@ -8,6 +15,7 @@ export default function MetalStock() {
   const [types, setTypes]       = useState([]);
   const [clinics, setClinics]   = useState([]);
   const [newTypeName, setNewTypeName] = useState('');
+  const [printData, setPrintData] = useState(null);
   const [form, setForm] = useState({
     date: today(), clinicName: '', metalType: '', transactionType: '預かり', weight: '', note: '',
   });
@@ -33,16 +41,55 @@ export default function MetalStock() {
 
   useEffect(() => { load(); }, []);
 
-  async function handleAddStock(e) {
-    e.preventDefault();
-    if (!form.date || !form.metalType || !form.transactionType || !form.weight) return;
+  async function postStock() {
     await fetch('/api/metal-stocks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, weight: parseFloat(form.weight) }),
     });
+  }
+
+  async function handleAddStock(e) {
+    e.preventDefault();
+    if (!form.date || !form.metalType || !form.transactionType || !form.weight) return;
+    await postStock();
     setForm(f => ({ ...f, weight: '', note: '' }));
     await load();
+  }
+
+  async function handleAddWithPrint(e) {
+    e.preventDefault();
+    if (!form.date || !form.metalType || !form.weight) return;
+    const depositWeight = parseFloat(form.weight);
+
+    // 保存前の残量を記録
+    const balanceBefore = calcClinicBalance(stocks, form.clinicName, form.metalType);
+
+    // 保存
+    await postStock();
+
+    // 最新データを直接取得
+    const freshStocks = await fetch('/api/metal-stocks').then(r => r.json());
+    setStocks(freshStocks);
+    // サマリー等も更新（非同期）
+    fetch('/api/metal-stocks/summary').then(r => r.json()).then(setSummary);
+
+    // この医院の全金属残量を計算（今回の預かり後）
+    const clinicAllBalances = types.map(t => ({
+      metalType: t.name,
+      balance: calcClinicBalance(freshStocks, form.clinicName, t.name),
+    }));
+
+    setPrintData({
+      clinicName:        form.clinicName,
+      receiptDate:       form.date,
+      metalType:         form.metalType,
+      depositWeight,
+      balanceBefore,
+      clinicAllBalances,
+    });
+
+    setForm(f => ({ ...f, weight: '', note: '' }));
   }
 
   async function handleDeleteStock(id) {
@@ -74,6 +121,8 @@ export default function MetalStock() {
     const d = new Date(str);
     return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
   }
+
+  const isAzukari = form.transactionType === '預かり';
 
   return (
     <div style={{ padding: '1rem', maxWidth: 900, margin: '0 auto' }}>
@@ -139,9 +188,18 @@ export default function MetalStock() {
           <input type="text" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
             style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #ccc', width: 140 }} />
         </label>
-        <button type="submit" style={{ padding: '6px 18px', background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold' }}>
-          登録
-        </button>
+        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end' }}>
+          <button type="submit"
+            style={{ padding: '6px 18px', background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold' }}>
+            登録
+          </button>
+          {isAzukari && (
+            <button type="button" onClick={handleAddWithPrint}
+              style={{ padding: '6px 14px', background: '#1a3a5c', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}>
+              保存して預かり票を印刷
+            </button>
+          )}
+        </div>
       </form>
 
       {/* ─── 履歴テーブル ─── */}
@@ -202,6 +260,19 @@ export default function MetalStock() {
           <button type="submit" style={{ padding: '5px 14px', background: '#4a90e2', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>追加</button>
         </form>
       </div>
+
+      {/* ─── 預かり票印刷オーバーレイ ─── */}
+      {printData && (
+        <MetalReceiptPrint
+          clinicName={printData.clinicName}
+          receiptDate={printData.receiptDate}
+          metalType={printData.metalType}
+          depositWeight={printData.depositWeight}
+          balanceBefore={printData.balanceBefore}
+          clinicAllBalances={printData.clinicAllBalances}
+          onClose={() => setPrintData(null)}
+        />
+      )}
 
     </div>
   );
