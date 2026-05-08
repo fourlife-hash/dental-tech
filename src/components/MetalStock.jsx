@@ -1,0 +1,208 @@
+import { useState, useEffect } from 'react';
+
+const TX_TYPES = ['預かり', '使用', '返却'];
+
+export default function MetalStock() {
+  const [stocks, setStocks]     = useState([]);
+  const [summary, setSummary]   = useState([]);
+  const [types, setTypes]       = useState([]);
+  const [clinics, setClinics]   = useState([]);
+  const [newTypeName, setNewTypeName] = useState('');
+  const [form, setForm] = useState({
+    date: today(), clinicName: '', metalType: '', transactionType: '預かり', weight: '', note: '',
+  });
+
+  function today() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  async function load() {
+    const [s, sum, t, cl] = await Promise.all([
+      fetch('/api/metal-stocks').then(r => r.json()),
+      fetch('/api/metal-stocks/summary').then(r => r.json()),
+      fetch('/api/metal-types').then(r => r.json()),
+      fetch('/api/clinics').then(r => r.json()),
+    ]);
+    setStocks(s);
+    setSummary(sum);
+    setTypes(t);
+    setClinics(cl);
+    if (!form.metalType && t.length > 0) setForm(f => ({ ...f, metalType: t[0].name }));
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleAddStock(e) {
+    e.preventDefault();
+    if (!form.date || !form.metalType || !form.transactionType || !form.weight) return;
+    await fetch('/api/metal-stocks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, weight: parseFloat(form.weight) }),
+    });
+    setForm(f => ({ ...f, weight: '', note: '' }));
+    await load();
+  }
+
+  async function handleDeleteStock(id) {
+    if (!confirm('この履歴を削除しますか？')) return;
+    await fetch(`/api/metal-stocks/${id}`, { method: 'DELETE' });
+    await load();
+  }
+
+  async function handleAddType(e) {
+    e.preventDefault();
+    if (!newTypeName.trim()) return;
+    const r = await fetch('/api/metal-types', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newTypeName.trim() }),
+    });
+    if (r.ok) { setNewTypeName(''); await load(); }
+    else { const d = await r.json(); alert(d.error); }
+  }
+
+  async function handleDeleteType(id, name) {
+    if (!confirm(`「${name}」を削除しますか？`)) return;
+    await fetch(`/api/metal-types/${id}`, { method: 'DELETE' });
+    await load();
+  }
+
+  function fmtDate(str) {
+    if (!str) return '';
+    const d = new Date(str);
+    return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  return (
+    <div style={{ padding: '1rem', maxWidth: 900, margin: '0 auto' }}>
+
+      {/* ─── サマリーカード ─── */}
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+        {types.map(t => {
+          const s = summary.find(s => s.metalType === t.name);
+          const bal = s ? s.balance : 0;
+          return (
+            <div key={t.id} style={{
+              background: '#f0f4ff', borderRadius: 10, padding: '0.75rem 1.25rem',
+              minWidth: 120, textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+            }}>
+              <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>{t.name}</div>
+              <div style={{ fontSize: 22, fontWeight: 'bold', color: bal < 0 ? '#c0392b' : '#1a3a5c' }}>
+                {bal.toFixed(2)}<span style={{ fontSize: 13, marginLeft: 2 }}>g</span>
+              </div>
+            </div>
+          );
+        })}
+        {types.length === 0 && <p style={{ color: '#888' }}>金属種類を登録してください</p>}
+      </div>
+
+      {/* ─── 入力フォーム ─── */}
+      <form onSubmit={handleAddStock} style={{ background: '#fafafa', borderRadius: 10, padding: '1rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-end' }}>
+        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, gap: 3 }}>
+          日付
+          <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #ccc' }} required />
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, gap: 3 }}>
+          医院名
+          <select value={form.clinicName} onChange={e => setForm(f => ({ ...f, clinicName: e.target.value }))}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #ccc', minWidth: 120 }}>
+            <option value="">（未選択）</option>
+            {clinics.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+          </select>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, gap: 3 }}>
+          金属種類
+          <select value={form.metalType} onChange={e => setForm(f => ({ ...f, metalType: e.target.value }))}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #ccc' }} required>
+            <option value="">選択</option>
+            {types.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+          </select>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, gap: 3 }}>
+          区分
+          <select value={form.transactionType} onChange={e => setForm(f => ({ ...f, transactionType: e.target.value }))}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #ccc' }}>
+            {TX_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, gap: 3 }}>
+          重量(g)
+          <input type="number" step="0.01" min="0" value={form.weight}
+            onChange={e => setForm(f => ({ ...f, weight: e.target.value }))}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #ccc', width: 80 }} required />
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, gap: 3 }}>
+          備考
+          <input type="text" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #ccc', width: 140 }} />
+        </label>
+        <button type="submit" style={{ padding: '6px 18px', background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold' }}>
+          登録
+        </button>
+      </form>
+
+      {/* ─── 履歴テーブル ─── */}
+      <div style={{ overflowX: 'auto', marginBottom: '2rem' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <thead>
+            <tr style={{ background: '#f0f4ff' }}>
+              {['日付', '医院名', '金属種類', '区分', '重量(g)', '備考', ''].map(h => (
+                <th key={h} style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '2px solid #dde', whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {stocks.length === 0 && (
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '1.5rem', color: '#888' }}>履歴がありません</td></tr>
+            )}
+            {stocks.map(s => (
+              <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
+                <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }}>{fmtDate(s.date)}</td>
+                <td style={{ padding: '7px 10px' }}>{s.clinicName || '—'}</td>
+                <td style={{ padding: '7px 10px' }}>{s.metalType}</td>
+                <td style={{ padding: '7px 10px' }}>
+                  <span style={{
+                    padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 'bold',
+                    background: s.transactionType === '預かり' ? '#e8f5e9' : s.transactionType === '使用' ? '#fff3e0' : '#fce4ec',
+                    color:      s.transactionType === '預かり' ? '#2e7d32' : s.transactionType === '使用' ? '#e65100' : '#c62828',
+                  }}>{s.transactionType}</span>
+                </td>
+                <td style={{ padding: '7px 10px', textAlign: 'right' }}>{s.weight.toFixed(2)}</td>
+                <td style={{ padding: '7px 10px', color: '#666' }}>{s.note || ''}</td>
+                <td style={{ padding: '7px 10px' }}>
+                  <button onClick={() => handleDeleteStock(s.id)}
+                    style={{ background: 'none', border: '1px solid #ccc', borderRadius: 6, cursor: 'pointer', padding: '2px 8px', color: '#999', fontSize: 12 }}>
+                    削除
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ─── 金属種類マスタ ─── */}
+      <div style={{ background: '#fafafa', borderRadius: 10, padding: '1rem' }}>
+        <h3 style={{ margin: '0 0 0.75rem', fontSize: 15 }}>金属種類マスタ</h3>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+          {types.map(t => (
+            <span key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#e8eaf6', borderRadius: 20, padding: '4px 12px', fontSize: 14 }}>
+              {t.name}
+              <button onClick={() => handleDeleteType(t.id, t.name)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+            </span>
+          ))}
+        </div>
+        <form onSubmit={handleAddType} style={{ display: 'flex', gap: '0.5rem' }}>
+          <input type="text" value={newTypeName} onChange={e => setNewTypeName(e.target.value)}
+            placeholder="新しい金属種類名" style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #ccc', flex: 1, maxWidth: 200 }} />
+          <button type="submit" style={{ padding: '5px 14px', background: '#4a90e2', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>追加</button>
+        </form>
+      </div>
+
+    </div>
+  );
+}

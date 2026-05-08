@@ -540,6 +540,31 @@ async function initDb() {
   await pool.query(`ALTER TABLE delivery_notes ADD COLUMN IF NOT EXISTS patient_name TEXT NOT NULL DEFAULT ''`);
   await pool.query(`ALTER TABLE delivery_notes ADD COLUMN IF NOT EXISTS shiki TEXT NOT NULL DEFAULT ''`);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS metal_types (
+      id   SERIAL PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS metal_stocks (
+      id               SERIAL PRIMARY KEY,
+      date             DATE NOT NULL,
+      clinic_name      TEXT,
+      metal_type       TEXT NOT NULL,
+      transaction_type TEXT NOT NULL,
+      weight           DECIMAL(8,2) NOT NULL,
+      note             TEXT,
+      created_at       TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    INSERT INTO metal_types (name) VALUES ('パラジウム'),('ミロ'),('金')
+    ON CONFLICT (name) DO NOTHING
+  `);
+
   // 医院名の表記揺れを修正（既存DBデータ対応）
   await pool.query("UPDATE jobs SET clinic = 'クロイ歯科医院' WHERE clinic = 'クロイD・C'");
 
@@ -936,6 +961,122 @@ app.delete('/api/delivery-notes/:id', async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM delivery_notes WHERE id=$1', [req.params.id]);
     if (result.rowCount === 0) return res.status(404).json({ error: '納品書が見つかりません' });
+    res.status(204).end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+// ─── Metal Types API ─────────────────────────────────────────────────────────
+
+app.get('/api/metal-types', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM metal_types ORDER BY id');
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+app.post('/api/metal-types', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: '名前は必須です' });
+    const { rows } = await pool.query(
+      'INSERT INTO metal_types (name) VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING *',
+      [name]
+    );
+    if (rows.length === 0) return res.status(409).json({ error: '既に存在します' });
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+app.delete('/api/metal-types/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM metal_types WHERE id=$1', [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: '見つかりません' });
+    res.status(204).end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+// ─── Metal Stocks API ─────────────────────────────────────────────────────────
+
+app.get('/api/metal-stocks/summary', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        metal_type,
+        COALESCE(SUM(CASE WHEN transaction_type = '預かり' THEN weight ELSE 0 END), 0) AS received,
+        COALESCE(SUM(CASE WHEN transaction_type = '使用'   THEN weight ELSE 0 END), 0) AS used,
+        COALESCE(SUM(CASE WHEN transaction_type = '返却'   THEN weight ELSE 0 END), 0) AS returned
+      FROM metal_stocks
+      GROUP BY metal_type
+    `);
+    const summary = rows.map(r => ({
+      metalType: r.metal_type,
+      balance: parseFloat(r.received) - parseFloat(r.used) - parseFloat(r.returned),
+    }));
+    res.json(summary);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+app.get('/api/metal-stocks', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM metal_stocks ORDER BY date DESC, created_at DESC');
+    res.json(rows.map(r => ({
+      id:              r.id,
+      date:            r.date,
+      clinicName:      r.clinic_name,
+      metalType:       r.metal_type,
+      transactionType: r.transaction_type,
+      weight:          parseFloat(r.weight),
+      note:            r.note,
+      createdAt:       r.created_at,
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+app.post('/api/metal-stocks', async (req, res) => {
+  try {
+    const { date, clinicName, metalType, transactionType, weight, note } = req.body;
+    if (!date || !metalType || !transactionType || weight == null) {
+      return res.status(400).json({ error: '必須項目が不足しています' });
+    }
+    const { rows } = await pool.query(
+      `INSERT INTO metal_stocks (date, clinic_name, metal_type, transaction_type, weight, note)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [date, clinicName || null, metalType, transactionType, weight, note || null]
+    );
+    const r = rows[0];
+    res.status(201).json({
+      id: r.id, date: r.date, clinicName: r.clinic_name,
+      metalType: r.metal_type, transactionType: r.transaction_type,
+      weight: parseFloat(r.weight), note: r.note, createdAt: r.created_at,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+app.delete('/api/metal-stocks/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM metal_stocks WHERE id=$1', [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: '見つかりません' });
     res.status(204).end();
   } catch (err) {
     console.error(err);

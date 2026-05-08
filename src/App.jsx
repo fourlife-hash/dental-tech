@@ -5,6 +5,7 @@ import AddJobForm from './components/AddJobForm.jsx';
 import TodayPanel from './components/TodayPanel.jsx';
 import EditModal from './components/EditModal.jsx';
 import DeliveryNote from './components/DeliveryNote.jsx';
+import MetalStock from './components/MetalStock.jsx';
 import { fetchJobs, createJob, patchDone, removeJob, updateJob } from './api.js';
 
 function localStr(d) {
@@ -24,7 +25,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [editingJob, setEditingJob]     = useState(null);
-  const [activeTab, setActiveTab]       = useState('jobs'); // 'jobs' | 'delivery'
+  const [activeTab, setActiveTab]       = useState('jobs'); // 'jobs' | 'delivery' | 'metal'
 
   const loadJobs = useCallback(async () => {
     try {
@@ -85,6 +86,10 @@ export default function App() {
             className={`main-nav-btn${activeTab === 'delivery' ? ' active' : ''}`}
             onClick={() => setActiveTab('delivery')}
           >納品書</button>
+          <button
+            className={`main-nav-btn${activeTab === 'metal' ? ' active' : ''}`}
+            onClick={() => setActiveTab('metal')}
+          >預かり金属</button>
         </nav>
         <span className="header-sub">全{jobs.length}件 / 済{jobs.filter(j=>j.done).length}件</span>
       </header>
@@ -122,9 +127,13 @@ export default function App() {
 
           <TodayPanel jobs={jobs} onToggleDone={handleToggleDone} onEdit={setEditingJob} onUpdate={handleFieldUpdate} />
         </div>
-      ) : (
+      ) : activeTab === 'delivery' ? (
         <div className="dn-page">
           <DeliveryNote />
+        </div>
+      ) : (
+        <div className="dn-page">
+          <MetalStock />
         </div>
       )}
 
