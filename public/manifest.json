@@ -1,0 +1,10 @@
+{
+  "name": "デンタルテック",
+  "short_name": "デンタルテック",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#1a3a5c",
+  "icons": []
+}

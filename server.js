@@ -642,7 +642,7 @@ app.get('/api/jobs', async (req, res) => {
     }
     if (date) {
       params.push(date);
-      conditions.push(`set_date = $${params.length}`);
+      conditions.push(`set_date::date = $${params.length}`);
     }
     if (done !== undefined) {
       params.push(done === 'true');
