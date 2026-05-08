@@ -3,6 +3,7 @@ import MetalReceiptPrint from './MetalReceiptPrint.jsx';
 
 const TX_TYPES = ['預かり', '使用', '返却'];
 
+// clinic×metal の残量を stocks 配列から計算
 function calcClinicBalance(allStocks, clinicName, metalType) {
   return allStocks
     .filter(s => s.clinicName === clinicName && s.metalType === metalType)
@@ -10,10 +11,10 @@ function calcClinicBalance(allStocks, clinicName, metalType) {
 }
 
 export default function MetalStock() {
-  const [stocks, setStocks]     = useState([]);
-  const [summary, setSummary]   = useState([]);
-  const [types, setTypes]       = useState([]);
-  const [clinics, setClinics]   = useState([]);
+  const [stocks, setStocks]       = useState([]);
+  const [summary, setSummary]     = useState([]); // [{clinicName, metalType, balance}]
+  const [types, setTypes]         = useState([]);
+  const [clinics, setClinics]     = useState([]);
   const [newTypeName, setNewTypeName] = useState('');
   const [printData, setPrintData] = useState(null);
   const [form, setForm] = useState({
@@ -41,6 +42,23 @@ export default function MetalStock() {
 
   useEffect(() => { load(); }, []);
 
+  // 全体残量（全医院合計）per metal_type
+  function totalBalance(metalType) {
+    return summary
+      .filter(s => s.metalType === metalType)
+      .reduce((acc, s) => acc + s.balance, 0);
+  }
+
+  // 医院ごとの残量マップ: { clinicName -> { metalType -> balance } }
+  function buildClinicMap() {
+    const map = {};
+    for (const s of summary) {
+      if (!map[s.clinicName]) map[s.clinicName] = {};
+      map[s.clinicName][s.metalType] = s.balance;
+    }
+    return map;
+  }
+
   async function postStock() {
     await fetch('/api/metal-stocks', {
       method: 'POST',
@@ -65,19 +83,16 @@ export default function MetalStock() {
     // 保存前の残量を記録
     const balanceBefore = calcClinicBalance(stocks, form.clinicName, form.metalType);
 
-    // 保存
     await postStock();
 
     // 最新データを直接取得
     const freshStocks = await fetch('/api/metal-stocks').then(r => r.json());
     setStocks(freshStocks);
-    // サマリー等も更新（非同期）
     fetch('/api/metal-stocks/summary').then(r => r.json()).then(setSummary);
 
-    // この医院の全金属残量を計算（今回の預かり後）
     const clinicAllBalances = types.map(t => ({
       metalType: t.name,
-      balance: calcClinicBalance(freshStocks, form.clinicName, t.name),
+      balance:   calcClinicBalance(freshStocks, form.clinicName, t.name),
     }));
 
     setPrintData({
@@ -123,23 +138,26 @@ export default function MetalStock() {
   }
 
   const isAzukari = form.transactionType === '預かり';
+  const clinicMap = buildClinicMap();
+  // 残量がある医院一覧（null clinicName は「医院未指定」として表示）
+  const clinicNames = [...new Set(summary.map(s => s.clinicName))].sort((a, b) => (a || '').localeCompare(b || ''));
 
   return (
-    <div style={{ padding: '1rem', maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ padding: '1rem', maxWidth: 960, margin: '0 auto' }}>
 
-      {/* ─── サマリーカード ─── */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+      {/* ─── 全体残量カード ─── */}
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
         {types.map(t => {
-          const s = summary.find(s => s.metalType === t.name);
-          const bal = s ? s.balance : 0;
+          const bal = totalBalance(t.name);
           return (
             <div key={t.id} style={{
               background: '#f0f4ff', borderRadius: 10, padding: '0.75rem 1.25rem',
               minWidth: 120, textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
             }}>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>全体残量</div>
               <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>{t.name}</div>
               <div style={{ fontSize: 22, fontWeight: 'bold', color: bal < 0 ? '#c0392b' : '#1a3a5c' }}>
-                {bal.toFixed(2)}<span style={{ fontSize: 13, marginLeft: 2 }}>g</span>
+                {bal.toFixed(2)}<span style={{ fontSize: 12, marginLeft: 2 }}>g</span>
               </div>
             </div>
           );
@@ -147,8 +165,48 @@ export default function MetalStock() {
         {types.length === 0 && <p style={{ color: '#888' }}>金属種類を登録してください</p>}
       </div>
 
+      {/* ─── 医院別残量テーブル ─── */}
+      {clinicNames.length > 0 && types.length > 0 && (
+        <div style={{ overflowX: 'auto', marginBottom: '1.5rem' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#1a3a5c', color: '#fff' }}>
+                <th style={{ padding: '7px 12px', textAlign: 'left', border: '1px solid #4a6a8c' }}>医院名</th>
+                {types.map(t => (
+                  <th key={t.id} style={{ padding: '7px 12px', textAlign: 'right', border: '1px solid #4a6a8c' }}>{t.name}(g)</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {clinicNames.map(cn => (
+                <tr key={cn || '__none__'} style={{ borderBottom: '1px solid #e0e4f0' }}>
+                  <td style={{ padding: '7px 12px', border: '1px solid #dde', fontWeight: 'bold' }}>
+                    {cn || '（医院名未設定）'}
+                  </td>
+                  {types.map(t => {
+                    const bal = clinicMap[cn]?.[t.name] ?? 0;
+                    return (
+                      <td key={t.id} style={{
+                        padding: '7px 12px', textAlign: 'right', border: '1px solid #dde',
+                        color: bal < 0 ? '#c0392b' : bal === 0 ? '#aaa' : '#1a3a5c',
+                        fontWeight: bal !== 0 ? 'bold' : 'normal',
+                      }}>
+                        {bal !== 0 ? bal.toFixed(2) : '—'}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* ─── 入力フォーム ─── */}
-      <form onSubmit={handleAddStock} style={{ background: '#fafafa', borderRadius: 10, padding: '1rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-end' }}>
+      <form onSubmit={handleAddStock} style={{
+        background: '#fafafa', borderRadius: 10, padding: '1rem', marginBottom: '1.5rem',
+        display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-end',
+      }}>
         <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, gap: 3 }}>
           日付
           <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
@@ -273,7 +331,6 @@ export default function MetalStock() {
           onClose={() => setPrintData(null)}
         />
       )}
-
     </div>
   );
 }

@@ -1042,18 +1042,19 @@ app.get('/api/metal-stocks/summary', async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT
+        clinic_name,
         metal_type,
-        COALESCE(SUM(CASE WHEN transaction_type = '預かり' THEN weight ELSE 0 END), 0) AS received,
-        COALESCE(SUM(CASE WHEN transaction_type = '使用'   THEN weight ELSE 0 END), 0) AS used,
-        COALESCE(SUM(CASE WHEN transaction_type = '返却'   THEN weight ELSE 0 END), 0) AS returned
+        SUM(CASE WHEN transaction_type = '預かり' THEN weight ELSE 0 END) -
+        SUM(CASE WHEN transaction_type = '使用'   THEN weight ELSE 0 END) -
+        SUM(CASE WHEN transaction_type = '返却'   THEN weight ELSE 0 END) AS balance
       FROM metal_stocks
-      GROUP BY metal_type
+      GROUP BY clinic_name, metal_type
     `);
-    const summary = rows.map(r => ({
-      metalType: r.metal_type,
-      balance: parseFloat(r.received) - parseFloat(r.used) - parseFloat(r.returned),
-    }));
-    res.json(summary);
+    res.json(rows.map(r => ({
+      clinicName: r.clinic_name,
+      metalType:  r.metal_type,
+      balance:    parseFloat(r.balance),
+    })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DBエラー' });
