@@ -102,7 +102,7 @@ export default function DeliveryNote() {
     setLoadingJobs(true);
     try {
       const [jobs, allNotes] = await Promise.all([
-        fetch(`/api/jobs?${new URLSearchParams({ date, done: 'true' })}`).then(r => r.json()),
+        fetch(`/api/jobs?${new URLSearchParams({ date })}`).then(r => r.json()),
         fetchDeliveryNotes(),
       ]);
       setSavedNotes(allNotes.filter(n => n.deliveryDate === date));
