@@ -92,6 +92,11 @@ export default function App() {
           >預かり金属</button>
         </nav>
         <span className="header-sub">全{jobs.length}件 / 済{jobs.filter(j=>j.done).length}件</span>
+        <a
+          href="/api/backup"
+          download
+          style={{ marginLeft: '1rem', padding: '4px 12px', background: '#4a6a8c', color: '#fff', borderRadius: 6, fontSize: 13, textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >バックアップ</a>
       </header>
 
       {activeTab === 'jobs' ? (

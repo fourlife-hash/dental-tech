@@ -1114,6 +1114,37 @@ app.delete('/api/metal-stocks/:id', async (req, res) => {
   }
 });
 
+// ─── Backup API ──────────────────────────────────────────────────────────────
+
+app.get('/api/backup', async (req, res) => {
+  try {
+    const [jobs, deliveryNotes, metalStocks, metalTypes, clinics, prices] = await Promise.all([
+      pool.query('SELECT * FROM jobs ORDER BY created_at'),
+      pool.query('SELECT * FROM delivery_notes ORDER BY created_at'),
+      pool.query('SELECT * FROM metal_stocks ORDER BY created_at'),
+      pool.query('SELECT * FROM metal_types ORDER BY id'),
+      pool.query('SELECT * FROM clinics ORDER BY id'),
+      pool.query('SELECT * FROM prices'),
+    ]);
+    const now = new Date();
+    const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="backup_${stamp}.json"`);
+    res.json({
+      exportedAt:    now.toISOString(),
+      jobs:          jobs.rows,
+      deliveryNotes: deliveryNotes.rows,
+      metalStocks:   metalStocks.rows,
+      metalTypes:    metalTypes.rows,
+      clinics:       clinics.rows,
+      prices:        prices.rows,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'バックアップ失敗' });
+  }
+});
+
 // ─── SPA fallback ────────────────────────────────────────────────────────────
 
 app.get('*', (req, res) => {
