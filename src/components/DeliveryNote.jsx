@@ -10,28 +10,81 @@ function fmtDate(str) {
   return `${y}年${parseInt(m)}月${parseInt(d)}日`;
 }
 
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+
+function CalendarPicker({ selectedDate, onSelect }) {
+  const today = new Date();
+  const [calYear, setCalYear]   = useState(today.getFullYear());
+  const [calMonth, setCalMonth] = useState(today.getMonth()); // 0-indexed
+
+  function prevMonth() {
+    if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
+    else setCalMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0); }
+    else setCalMonth(m => m + 1);
+  }
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  function toISO(d) {
+    const mm = String(calMonth + 1).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    return `${calYear}-${mm}-${dd}`;
+  }
+
+  const styles = {
+    wrapper: { maxWidth: 320, margin: '0 auto', userSelect: 'none' },
+    header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    navBtn: { background: 'none', border: '1px solid #ccc', borderRadius: 4, padding: '4px 12px', fontSize: 18, cursor: 'pointer' },
+    title: { fontWeight: 'bold', fontSize: 16 },
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 },
+    weekday: { textAlign: 'center', fontSize: 12, fontWeight: 'bold', padding: '4px 0', color: '#555' },
+    day: (d) => ({
+      textAlign: 'center', padding: '8px 0', borderRadius: 4, cursor: 'pointer', fontSize: 15,
+      background: selectedDate === toISO(d) ? '#4a90e2' : 'transparent',
+      color: selectedDate === toISO(d) ? '#fff' : '#000',
+      fontWeight: selectedDate === toISO(d) ? 'bold' : 'normal',
+    }),
+    empty: { padding: '8px 0' },
+  };
+
+  return (
+    <div style={styles.wrapper}>
+      <div style={styles.header}>
+        <button style={styles.navBtn} onClick={prevMonth}>‹</button>
+        <span style={styles.title}>{calYear}年 {calMonth + 1}月</span>
+        <button style={styles.navBtn} onClick={nextMonth}>›</button>
+      </div>
+      <div style={styles.grid}>
+        {WEEKDAYS.map(w => <div key={w} style={styles.weekday}>{w}</div>)}
+        {cells.map((d, i) =>
+          d === null
+            ? <div key={`e-${i}`} style={styles.empty} />
+            : <div key={d} style={styles.day(d)} onClick={() => onSelect(toISO(d))}>{d}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function DeliveryNote() {
   const [subTab, setSubTab]           = useState('new');
   const [screen, setScreen]           = useState('date');
   const [selectedDate, setSelectedDate] = useState('');
   const [groupedJobs, setGroupedJobs] = useState({});
-  const [savedNotes, setSavedNotes]   = useState([]); // 選択日のDB保存済み納品書
+  const [savedNotes, setSavedNotes]   = useState([]);
   const [clinics, setClinics]         = useState([]);
   const [formData, setFormData]       = useState(null);
-  const [notes, setNotes]             = useState([]);  // 発行済み一覧（全件）
+  const [notes, setNotes]             = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
-  const [printNotes, setPrintNotes]   = useState(null); // 医院別印刷
-  const [selYear, setSelYear]   = useState('');
-  const [selMonth, setSelMonth] = useState('');
-  const [selDay, setSelDay]     = useState('');
-
-  useEffect(() => {
-    if (selYear && selMonth && selDay) {
-      const mm = selMonth.padStart(2, '0');
-      const dd = selDay.padStart(2, '0');
-      handleDateChange(`${selYear}-${mm}-${dd}`);
-    }
-  }, [selYear, selMonth, selDay]);
+  const [printNotes, setPrintNotes]   = useState(null);
 
   useEffect(() => {
     fetch('/api/clinics').then(r => r.json()).then(setClinics);
@@ -55,7 +108,6 @@ export default function DeliveryNote() {
     if (!date) return;
     setLoadingJobs(true);
     try {
-      // ジョブとその日の保存済み納品書を同時取得
       const [jobs, allNotes] = await Promise.all([
         fetch(`/api/jobs?${new URLSearchParams({ date, done: 'true' })}`).then(r => r.json()),
         fetchDeliveryNotes(),
@@ -76,7 +128,6 @@ export default function DeliveryNote() {
 
   function handleSelectPatient(job) {
     const clinic = clinics.find(c => c.name === job.clinic);
-    // その患者の保存済み納品書があれば渡す（フォームで再編集できるよう）
     const existingNote = savedNotes.find(
       n => n.patientName === job.patient && n.clinicName === job.clinic
     );
@@ -89,7 +140,6 @@ export default function DeliveryNote() {
     setScreen('form');
   }
 
-  // 医院名横「印刷」ボタン
   function handleClinicPrint(clinicName) {
     const clinicNotes = savedNotes
       .filter(n => n.clinicName === clinicName)
@@ -119,7 +169,6 @@ export default function DeliveryNote() {
     }
   }
 
-  // フォームで保存完了後：保存済み一覧を更新して患者一覧に戻る
   async function handleFormSaved() {
     if (formData?.fromList) {
       loadNotes();
@@ -141,7 +190,6 @@ export default function DeliveryNote() {
     setGroupedJobs({});
     setSavedNotes([]);
     setFormData(null);
-    setSelYear(''); setSelMonth(''); setSelDay('');
   }
 
   return (
@@ -163,28 +211,7 @@ export default function DeliveryNote() {
           {screen === 'date' && !formData && (
             <div className="dn-date-screen">
               <p className="dn-date-prompt">納品日を選択してください</p>
-              {(() => {
-                const currentYear = new Date().getFullYear();
-                const years  = [currentYear - 1, currentYear, currentYear + 1];
-                const months = Array.from({ length: 12 }, (_, i) => i + 1);
-                const days   = Array.from({ length: 31 }, (_, i) => i + 1);
-                return (
-                  <div className="dn-date-selects">
-                    <select value={selYear} onChange={e => setSelYear(e.target.value)}>
-                      <option value="">年</option>
-                      {years.map(y => <option key={y} value={y}>{y}年</option>)}
-                    </select>
-                    <select value={selMonth} onChange={e => setSelMonth(e.target.value)}>
-                      <option value="">月</option>
-                      {months.map(m => <option key={m} value={m}>{m}月</option>)}
-                    </select>
-                    <select value={selDay} onChange={e => setSelDay(e.target.value)}>
-                      <option value="">日</option>
-                      {days.map(d => <option key={d} value={d}>{d}日</option>)}
-                    </select>
-                  </div>
-                );
-              })()}
+              <CalendarPicker selectedDate={selectedDate} onSelect={handleDateChange} />
               {loadingJobs && <p className="dn-loading">読み込み中...</p>}
             </div>
           )}
