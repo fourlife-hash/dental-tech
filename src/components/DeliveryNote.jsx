@@ -21,6 +21,17 @@ export default function DeliveryNote() {
   const [notes, setNotes]             = useState([]);  // 発行済み一覧（全件）
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [printNotes, setPrintNotes]   = useState(null); // 医院別印刷
+  const [selYear, setSelYear]   = useState('');
+  const [selMonth, setSelMonth] = useState('');
+  const [selDay, setSelDay]     = useState('');
+
+  useEffect(() => {
+    if (selYear && selMonth && selDay) {
+      const mm = selMonth.padStart(2, '0');
+      const dd = selDay.padStart(2, '0');
+      handleDateChange(`${selYear}-${mm}-${dd}`);
+    }
+  }, [selYear, selMonth, selDay]);
 
   useEffect(() => {
     fetch('/api/clinics').then(r => r.json()).then(setClinics);
@@ -130,6 +141,7 @@ export default function DeliveryNote() {
     setGroupedJobs({});
     setSavedNotes([]);
     setFormData(null);
+    setSelYear(''); setSelMonth(''); setSelDay('');
   }
 
   return (
@@ -151,19 +163,28 @@ export default function DeliveryNote() {
           {screen === 'date' && !formData && (
             <div className="dn-date-screen">
               <p className="dn-date-prompt">納品日を選択してください</p>
-              <input
-                type="date"
-                defaultValue=""
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val) handleDateChange(val);
-                }}
-                onBlur={e => {
-                  const val = e.target.value;
-                  if (val && val !== selectedDate) handleDateChange(val);
-                }}
-                className="dn-date-input"
-              />
+              {(() => {
+                const currentYear = new Date().getFullYear();
+                const years  = [currentYear - 1, currentYear, currentYear + 1];
+                const months = Array.from({ length: 12 }, (_, i) => i + 1);
+                const days   = Array.from({ length: 31 }, (_, i) => i + 1);
+                return (
+                  <div className="dn-date-selects">
+                    <select value={selYear} onChange={e => setSelYear(e.target.value)}>
+                      <option value="">年</option>
+                      {years.map(y => <option key={y} value={y}>{y}年</option>)}
+                    </select>
+                    <select value={selMonth} onChange={e => setSelMonth(e.target.value)}>
+                      <option value="">月</option>
+                      {months.map(m => <option key={m} value={m}>{m}月</option>)}
+                    </select>
+                    <select value={selDay} onChange={e => setSelDay(e.target.value)}>
+                      <option value="">日</option>
+                      {days.map(d => <option key={d} value={d}>{d}日</option>)}
+                    </select>
+                  </div>
+                );
+              })()}
               {loadingJobs && <p className="dn-loading">読み込み中...</p>}
             </div>
           )}
