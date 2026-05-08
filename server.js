@@ -565,6 +565,10 @@ async function initDb() {
     ON CONFLICT (name) DO NOTHING
   `);
 
+  await pool.query(`
+    ALTER TABLE metal_stocks ADD COLUMN IF NOT EXISTS delivery_note_id TEXT
+  `);
+
   // 医院名の表記揺れを修正（既存DBデータ対応）
   await pool.query("UPDATE jobs SET clinic = 'クロイ歯科医院' WHERE clinic = 'クロイD・C'");
 
@@ -875,6 +879,7 @@ app.post('/api/delivery-notes', async (req, res) => {
         [clinicName, deliveryDate, patientName]
       );
       if (dup.rowCount > 0) {
+        const dupId = dup.rows[0].id;
         const result = await pool.query(
           `UPDATE delivery_notes SET
              clinic_id=$1, shiki=$2,
@@ -886,9 +891,10 @@ app.post('/api/delivery-notes', async (req, res) => {
             JSON.stringify(rows || []),
             paraGram || 0, miroGram || 0,
             subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
-            dup.rows[0].id,
+            dupId,
           ]
         );
+        await syncMetalStocksForNote(dupId, deliveryDate, clinicName, paraGram || 0, miroGram || 0);
         return res.json(deliveryNoteFromRow(result.rows[0]));
       }
     }
@@ -917,6 +923,7 @@ app.post('/api/delivery-notes', async (req, res) => {
       ]
     );
     const { rows: saved } = await pool.query('SELECT * FROM delivery_notes WHERE id=$1', [id]);
+    await syncMetalStocksForNote(id, deliveryDate, clinicName, paraGram || 0, miroGram || 0);
     res.status(201).json(deliveryNoteFromRow(saved[0]));
   } catch (err) {
     console.error(err);
@@ -950,6 +957,7 @@ app.put('/api/delivery-notes/:id', async (req, res) => {
       ]
     );
     if (result.rowCount === 0) return res.status(404).json({ error: '納品書が見つかりません' });
+    await syncMetalStocksForNote(id, deliveryDate, clinicName, paraGram || 0, miroGram || 0);
     res.json(deliveryNoteFromRow(result.rows[0]));
   } catch (err) {
     console.error(err);
@@ -959,6 +967,7 @@ app.put('/api/delivery-notes/:id', async (req, res) => {
 
 app.delete('/api/delivery-notes/:id', async (req, res) => {
   try {
+    await pool.query('DELETE FROM metal_stocks WHERE delivery_note_id=$1', [req.params.id]);
     const result = await pool.query('DELETE FROM delivery_notes WHERE id=$1', [req.params.id]);
     if (result.rowCount === 0) return res.status(404).json({ error: '納品書が見つかりません' });
     res.status(204).end();
@@ -967,6 +976,26 @@ app.delete('/api/delivery-notes/:id', async (req, res) => {
     res.status(500).json({ error: 'DBエラー' });
   }
 });
+
+// ─── Metal Stock 連動ヘルパー ─────────────────────────────────────────────────
+
+async function syncMetalStocksForNote(deliveryNoteId, deliveryDate, clinicName, paraGram, miroGram) {
+  await pool.query('DELETE FROM metal_stocks WHERE delivery_note_id=$1', [deliveryNoteId]);
+  if (parseFloat(paraGram) > 0) {
+    await pool.query(
+      `INSERT INTO metal_stocks (date, clinic_name, metal_type, transaction_type, weight, delivery_note_id)
+       VALUES ($1, $2, 'パラジウム', '使用', $3, $4)`,
+      [deliveryDate, clinicName || null, paraGram, deliveryNoteId]
+    );
+  }
+  if (parseFloat(miroGram) > 0) {
+    await pool.query(
+      `INSERT INTO metal_stocks (date, clinic_name, metal_type, transaction_type, weight, delivery_note_id)
+       VALUES ($1, $2, 'ミロ', '使用', $3, $4)`,
+      [deliveryDate, clinicName || null, miroGram, deliveryNoteId]
+    );
+  }
+}
 
 // ─── Metal Types API ─────────────────────────────────────────────────────────
 
