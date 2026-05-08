@@ -10,66 +10,59 @@ function fmtDate(str) {
   return `${y}年${parseInt(m)}月${parseInt(d)}日`;
 }
 
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
-
-function CalendarPicker({ selectedDate, onSelect }) {
+function CalendarPicker({ onSelect, selectedDate }) {
   const today = new Date();
-  const [calYear, setCalYear]   = useState(today.getFullYear());
-  const [calMonth, setCalMonth] = useState(today.getMonth()); // 0-indexed
+  today.setHours(0,0,0,0);
+  const [cur, setCur] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const DAYS = ['日','月','火','水','木','金','土'];
 
-  function prevMonth() {
-    if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
-    else setCalMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0); }
-    else setCalMonth(m => m + 1);
-  }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function fmt(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function fmtJP(str){ if(!str) return ''; const [y,m,d]=str.split('-'); return `${y}年${parseInt(m)}月${parseInt(d)}日`; }
 
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-
-  const cells = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-  function toISO(d) {
-    const mm = String(calMonth + 1).padStart(2, '0');
-    const dd = String(d).padStart(2, '0');
-    return `${calYear}-${mm}-${dd}`;
-  }
-
-  const styles = {
-    wrapper: { maxWidth: 320, margin: '0 auto', userSelect: 'none' },
-    header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-    navBtn: { background: 'none', border: '1px solid #ccc', borderRadius: 4, padding: '4px 12px', fontSize: 18, cursor: 'pointer' },
-    title: { fontWeight: 'bold', fontSize: 16 },
-    grid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 },
-    weekday: { textAlign: 'center', fontSize: 12, fontWeight: 'bold', padding: '4px 0', color: '#555' },
-    day: (d) => ({
-      textAlign: 'center', padding: '8px 0', borderRadius: 4, cursor: 'pointer', fontSize: 15,
-      background: selectedDate === toISO(d) ? '#4a90e2' : 'transparent',
-      color: selectedDate === toISO(d) ? '#fff' : '#000',
-      fontWeight: selectedDate === toISO(d) ? 'bold' : 'normal',
-    }),
-    empty: { padding: '8px 0' },
-  };
+  const first = new Date(cur.getFullYear(), cur.getMonth(), 1);
+  const last  = new Date(cur.getFullYear(), cur.getMonth()+1, 0);
+  const blanks = Array.from({length: first.getDay()});
+  const daysArr = Array.from({length: last.getDate()}, (_,i)=>i+1);
 
   return (
-    <div style={styles.wrapper}>
-      <div style={styles.header}>
-        <button style={styles.navBtn} onClick={prevMonth}>‹</button>
-        <span style={styles.title}>{calYear}年 {calMonth + 1}月</span>
-        <button style={styles.navBtn} onClick={nextMonth}>›</button>
+    <div style={{maxWidth:'320px',margin:'0 auto',padding:'1rem 0'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'12px'}}>
+        <button onClick={()=>setCur(new Date(cur.getFullYear(),cur.getMonth()-1,1))}
+          style={{background:'none',border:'0.5px solid #ccc',borderRadius:'8px',width:'36px',height:'36px',fontSize:'20px',cursor:'pointer'}}>‹</button>
+        <span style={{fontWeight:'500',fontSize:'16px'}}>{cur.getFullYear()}年{cur.getMonth()+1}月</span>
+        <button onClick={()=>setCur(new Date(cur.getFullYear(),cur.getMonth()+1,1))}
+          style={{background:'none',border:'0.5px solid #ccc',borderRadius:'8px',width:'36px',height:'36px',fontSize:'20px',cursor:'pointer'}}>›</button>
       </div>
-      <div style={styles.grid}>
-        {WEEKDAYS.map(w => <div key={w} style={styles.weekday}>{w}</div>)}
-        {cells.map((d, i) =>
-          d === null
-            ? <div key={`e-${i}`} style={styles.empty} />
-            : <div key={d} style={styles.day(d)} onClick={() => onSelect(toISO(d))}>{d}</div>
-        )}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'2px'}}>
+        {DAYS.map((d,i)=>(
+          <div key={d} style={{textAlign:'center',fontSize:'12px',padding:'4px 0',fontWeight:'500',
+            color: i===0?'#E24B4A': i===6?'#378ADD':'#888'}}>{d}</div>
+        ))}
+        {blanks.map((_,i)=><div key={'b'+i}/>)}
+        {daysArr.map(d=>{
+          const dt = new Date(cur.getFullYear(), cur.getMonth(), d);
+          const dateStr = fmt(dt);
+          const dow = dt.getDay();
+          const isToday = dt.getTime()===today.getTime();
+          const isSel = selectedDate===dateStr;
+          return (
+            <button key={d} onClick={()=>onSelect(dateStr)}
+              style={{
+                textAlign:'center',padding:'8px 0',fontSize:'15px',border:'none',
+                borderRadius:'8px',cursor:'pointer',fontWeight: isSel||isToday?'500':'400',
+                background: isSel?'#1D9E75':'transparent',
+                color: isSel?'#fff': isToday?'#1D9E75': dow===0?'#E24B4A': dow===6?'#378ADD':'inherit',
+                outline: isToday&&!isSel?'1.5px solid #1D9E75':'none',
+              }}>{d}</button>
+          );
+        })}
       </div>
+      {selectedDate && (
+        <p style={{textAlign:'center',marginTop:'12px',fontSize:'14px',color:'#888'}}>
+          選択中：{fmtJP(selectedDate)}
+        </p>
+      )}
     </div>
   );
 }
@@ -211,7 +204,10 @@ export default function DeliveryNote() {
           {screen === 'date' && !formData && (
             <div className="dn-date-screen">
               <p className="dn-date-prompt">納品日を選択してください</p>
-              <CalendarPicker selectedDate={selectedDate} onSelect={handleDateChange} />
+              <CalendarPicker
+                selectedDate={selectedDate}
+                onSelect={(date) => handleDateChange(date)}
+              />
               {loadingJobs && <p className="dn-loading">読み込み中...</p>}
             </div>
           )}
