@@ -153,8 +153,15 @@ export default function DeliveryNote() {
               <p className="dn-date-prompt">納品日を選択してください</p>
               <input
                 type="date"
-                value={selectedDate}
-                onChange={e => handleDateChange(e.target.value)}
+                defaultValue=""
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val) handleDateChange(val);
+                }}
+                onBlur={e => {
+                  const val = e.target.value;
+                  if (val && val !== selectedDate) handleDateChange(val);
+                }}
                 className="dn-date-input"
               />
               {loadingJobs && <p className="dn-loading">読み込み中...</p>}
