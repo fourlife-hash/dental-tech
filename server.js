@@ -1145,6 +1145,99 @@ app.get('/api/backup', async (req, res) => {
   }
 });
 
+// ─── Restore API ─────────────────────────────────────────────────────────────
+
+app.post('/api/restore', async (req, res) => {
+  const { metalTypes = [], clinics = [], products = [], prices = [],
+          jobs = [], metalStocks = [], deliveryNotes = [] } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    for (const r of metalTypes) {
+      await client.query(
+        'INSERT INTO metal_types (id, name) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+        [r.id, r.name]
+      );
+    }
+
+    for (const r of clinics) {
+      await client.query(
+        'INSERT INTO clinics (id, name, short_name, closing_day) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+        [r.id, r.name, r.short_name, r.closing_day]
+      );
+    }
+
+    for (const r of products) {
+      await client.query(
+        'INSERT INTO products (id, code, name, category) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+        [r.id, r.code, r.name, r.category]
+      );
+    }
+
+    for (const r of prices) {
+      await client.query(
+        'INSERT INTO prices (clinic_id, product_id, price) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
+        [r.clinic_id, r.product_id, r.price]
+      );
+    }
+
+    for (const r of jobs) {
+      await client.query(
+        `INSERT INTO jobs (id, clinic, patient, set_date, set_time, shiki, gikobutsu, done, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING`,
+        [r.id, r.clinic, r.patient, r.set_date, r.set_time,
+         r.shiki ?? '', r.gikobutsu ?? '', r.done ?? false, r.created_at]
+      );
+    }
+
+    for (const r of metalStocks) {
+      await client.query(
+        `INSERT INTO metal_stocks (id, date, clinic_name, metal_type, transaction_type, weight, note, delivery_note_id, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING`,
+        [r.id, r.date, r.clinic_name, r.metal_type, r.transaction_type,
+         r.weight, r.note ?? null, r.delivery_note_id ?? null, r.created_at]
+      );
+    }
+
+    for (const r of deliveryNotes) {
+      await client.query(
+        `INSERT INTO delivery_notes
+           (id, delivery_no, clinic_id, clinic_name, delivery_date,
+            patient_name, shiki, rows, para_gram, miro_gram,
+            subtotal_giko, subtotal_material, tax, total, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+         ON CONFLICT DO NOTHING`,
+        [r.id, r.delivery_no, r.clinic_id ?? null, r.clinic_name, r.delivery_date,
+         r.patient_name ?? '', r.shiki ?? '',
+         typeof r.rows === 'string' ? r.rows : JSON.stringify(r.rows ?? []),
+         r.para_gram ?? 0, r.miro_gram ?? 0,
+         r.subtotal_giko ?? 0, r.subtotal_material ?? 0, r.tax ?? 0, r.total ?? 0,
+         r.created_at]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({
+      restored: {
+        metalTypes:    metalTypes.length,
+        clinics:       clinics.length,
+        products:      products.length,
+        prices:        prices.length,
+        jobs:          jobs.length,
+        metalStocks:   metalStocks.length,
+        deliveryNotes: deliveryNotes.length,
+      }
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: '復元失敗: ' + err.message });
+  } finally {
+    client.release();
+  }
+});
+
 // ─── SPA fallback ────────────────────────────────────────────────────────────
 
 app.get('*', (req, res) => {

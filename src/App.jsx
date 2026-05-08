@@ -26,6 +26,7 @@ export default function App() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [editingJob, setEditingJob]     = useState(null);
   const [activeTab, setActiveTab]       = useState('jobs'); // 'jobs' | 'delivery' | 'metal'
+  const [restoreMsg, setRestoreMsg]     = useState('');
 
   const loadJobs = useCallback(async () => {
     try {
@@ -97,6 +98,37 @@ export default function App() {
           download
           style={{ marginLeft: '1rem', padding: '4px 12px', background: '#4a6a8c', color: '#fff', borderRadius: 6, fontSize: 13, textDecoration: 'none', whiteSpace: 'nowrap' }}
         >バックアップ</a>
+        <label style={{ marginLeft: '0.5rem', padding: '4px 12px', background: '#6a5acd', color: '#fff', borderRadius: 6, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          データ復元
+          <input type="file" accept=".json" style={{ display: 'none' }} onChange={async e => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            e.target.value = '';
+            try {
+              const text = await file.text();
+              const data = JSON.parse(text);
+              const res = await fetch('/api/restore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+              });
+              const result = await res.json();
+              if (!res.ok) throw new Error(result.error || '復元失敗');
+              const r = result.restored;
+              setRestoreMsg(`復元完了 — jobs:${r.jobs} / 納品書:${r.deliveryNotes} / 金属:${r.metalStocks} / 医院:${r.clinics}`);
+              await loadJobs();
+              setTimeout(() => setRestoreMsg(''), 6000);
+            } catch (err) {
+              setRestoreMsg('エラー: ' + err.message);
+              setTimeout(() => setRestoreMsg(''), 6000);
+            }
+          }} />
+        </label>
+        {restoreMsg && (
+          <span style={{ marginLeft: '0.75rem', fontSize: 12, color: restoreMsg.startsWith('エラー') ? '#e74c3c' : '#27ae60', whiteSpace: 'nowrap' }}>
+            {restoreMsg}
+          </span>
+        )}
       </header>
 
       {activeTab === 'jobs' ? (
