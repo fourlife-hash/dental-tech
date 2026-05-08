@@ -255,7 +255,7 @@
     {
       "id": "795272ae-11cb-4819-ba43-d6f96b1e4271",
       "clinic": "三村歯科医院",
-      "patient": "北野 鶴留子",
+      "patient": "北野 瑠子",
       "setDate": "2026-05-01",
       "setTime": "10:30",
       "done": false,
@@ -459,18 +459,70 @@
     }
   ],
   "prices": [
-    { "clinicId": "c1", "productId": "p001", "price": 6390 },
-    { "clinicId": "c1", "productId": "p005", "price": 4000 },
-    { "clinicId": "c1", "productId": "p007", "price": 31800 },
-    { "clinicId": "c2", "productId": "p001", "price": 5000 },
-    { "clinicId": "c2", "productId": "p004", "price": 14500 },
-    { "clinicId": "c2", "productId": "p008", "price": 44000 },
-    { "clinicId": "c4", "productId": "p004", "price": 8400 },
-    { "clinicId": "c5", "productId": "p001", "price": 5250 },
-    { "clinicId": "c5", "productId": "p004", "price": 8400 },
-    { "clinicId": "c5", "productId": "p006", "price": 10400 },
-    { "clinicId": "c6", "productId": "p001", "price": 4000 },
-    { "clinicId": "c7", "productId": "p001", "price": 4000 },
-    { "clinicId": "c8", "productId": "p001", "price": 5000 }
+    {
+      "clinicId": "c1",
+      "productId": "p001",
+      "price": 6390
+    },
+    {
+      "clinicId": "c1",
+      "productId": "p005",
+      "price": 4000
+    },
+    {
+      "clinicId": "c1",
+      "productId": "p007",
+      "price": 31800
+    },
+    {
+      "clinicId": "c2",
+      "productId": "p001",
+      "price": 5000
+    },
+    {
+      "clinicId": "c2",
+      "productId": "p004",
+      "price": 14500
+    },
+    {
+      "clinicId": "c2",
+      "productId": "p008",
+      "price": 44000
+    },
+    {
+      "clinicId": "c4",
+      "productId": "p004",
+      "price": 8400
+    },
+    {
+      "clinicId": "c5",
+      "productId": "p001",
+      "price": 5250
+    },
+    {
+      "clinicId": "c5",
+      "productId": "p004",
+      "price": 8400
+    },
+    {
+      "clinicId": "c5",
+      "productId": "p006",
+      "price": 10400
+    },
+    {
+      "clinicId": "c6",
+      "productId": "p001",
+      "price": 4000
+    },
+    {
+      "clinicId": "c7",
+      "productId": "p001",
+      "price": 4000
+    },
+    {
+      "clinicId": "c8",
+      "productId": "p001",
+      "price": 5000
+    }
   ]
 }

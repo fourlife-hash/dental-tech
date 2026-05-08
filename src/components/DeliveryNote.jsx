@@ -46,7 +46,7 @@ export default function DeliveryNote() {
     try {
       // ジョブとその日の保存済み納品書を同時取得
       const [jobs, allNotes] = await Promise.all([
-        fetch(`/api/jobs?${new URLSearchParams({ date })}`).then(r => r.json()),
+        fetch(`/api/jobs?${new URLSearchParams({ date, done: 'true' })}`).then(r => r.json()),
         fetchDeliveryNotes(),
       ]);
       setSavedNotes(allNotes.filter(n => n.deliveryDate === date));
