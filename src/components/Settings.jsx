@@ -37,19 +37,23 @@ export default function Settings() {
 
       <form onSubmit={handleSave}>
         <div style={{ background: '#fafafa', borderRadius: 10, padding: '1.25rem', marginBottom: '1rem' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', fontSize: 14, marginBottom: 8, color: '#333' }}>
+          <label style={{ display: 'block', fontWeight: 'bold', fontSize: 14, marginBottom: 4, color: '#333' }}>
             弊社銀行口座
-            <span style={{ fontWeight: 'normal', fontSize: 12, color: '#888', marginLeft: 8 }}>（請求書フッターに表示されます）</span>
+            <span style={{ fontWeight: 'normal', fontSize: 12, color: '#888', marginLeft: 8 }}>（請求書フッターに改行を保持して表示されます。複数口座も入力可）</span>
           </label>
+          <p style={{ fontSize: 12, color: '#888', margin: '0 0 8px' }}>
+            例：みずほ銀行 京都支店 普通 1234567 デンタル テック アライズ<br />
+            　　京都銀行 〇〇支店 普通 7654321 デンタル テック アライズ
+          </p>
           <textarea
             value={bankInfo}
             onChange={e => setBankInfo(e.target.value)}
-            rows={5}
-            placeholder={`例：\nみずほ銀行 京都支店\n普通 1234567\nデンタル テック アライズ`}
+            rows={6}
+            placeholder={`みずほ銀行 京都支店 普通 1234567 デンタル テック アライズ\n京都銀行 〇〇支店 普通 7654321 デンタル テック アライズ`}
             style={{
               width: '100%', padding: '8px 10px', borderRadius: 6,
               border: '1px solid #ccc', fontSize: 13, lineHeight: 1.8,
-              resize: 'vertical', boxSizing: 'border-box',
+              resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit',
             }}
           />
         </div>
