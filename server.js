@@ -569,6 +569,34 @@ async function initDb() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_info (
+      id         SERIAL PRIMARY KEY,
+      bank_info  TEXT,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    INSERT INTO company_info (id, bank_info) VALUES (1, '')
+    ON CONFLICT (id) DO NOTHING
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS invoice_history (
+      id            SERIAL PRIMARY KEY,
+      clinic_id     TEXT,
+      year          INTEGER,
+      month         INTEGER,
+      total_amount  INTEGER,
+      prev_amount   INTEGER,
+      paid_amount   INTEGER,
+      adjust_amount INTEGER DEFAULT 0,
+      carry_over    INTEGER,
+      created_at    TIMESTAMP DEFAULT NOW(),
+      UNIQUE(clinic_id, year, month)
+    )
+  `);
+
+  await pool.query(`
     ALTER TABLE metal_stocks ADD COLUMN IF NOT EXISTS delivery_note_id TEXT
   `);
 
@@ -1185,6 +1213,69 @@ app.patch('/api/clinics/:id', async (req, res) => {
     );
     if (rows.length === 0) return res.status(404).json({ error: '医院が見つかりません' });
     res.json(clinicFromRow(rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+// ─── Invoice History API ─────────────────────────────────────────────────────
+
+app.get('/api/invoice-history', async (req, res) => {
+  try {
+    const { clinicId, year, month } = req.query;
+    const { rows } = await pool.query(
+      'SELECT * FROM invoice_history WHERE clinic_id=$1 AND year=$2 AND month=$3',
+      [clinicId, parseInt(year), parseInt(month)]
+    );
+    res.json(rows[0] || null);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+app.post('/api/invoice-history', async (req, res) => {
+  try {
+    const { clinicId, year, month, totalAmount, prevAmount, paidAmount, adjustAmount, carryOver } = req.body;
+    const { rows } = await pool.query(
+      `INSERT INTO invoice_history
+         (clinic_id, year, month, total_amount, prev_amount, paid_amount, adjust_amount, carry_over)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       ON CONFLICT (clinic_id, year, month)
+       DO UPDATE SET
+         total_amount=$4, prev_amount=$5, paid_amount=$6, adjust_amount=$7, carry_over=$8,
+         created_at=NOW()
+       RETURNING *`,
+      [clinicId, year, month, totalAmount, prevAmount, paidAmount, adjustAmount ?? 0, carryOver]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+// ─── Company Info API ────────────────────────────────────────────────────────
+
+app.get('/api/company-info', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM company_info WHERE id=1');
+    res.json(rows[0] || { id: 1, bank_info: '' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+app.put('/api/company-info', async (req, res) => {
+  try {
+    const { bankInfo } = req.body;
+    const { rows } = await pool.query(
+      `UPDATE company_info SET bank_info=$1, updated_at=NOW() WHERE id=1 RETURNING *`,
+      [bankInfo ?? '']
+    );
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DBエラー' });
