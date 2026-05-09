@@ -539,6 +539,9 @@ async function initDb() {
   // 既存テーブルへのカラム追加（idempotent）
   await pool.query(`ALTER TABLE delivery_notes ADD COLUMN IF NOT EXISTS patient_name TEXT NOT NULL DEFAULT ''`);
   await pool.query(`ALTER TABLE delivery_notes ADD COLUMN IF NOT EXISTS shiki TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE clinics ADD COLUMN IF NOT EXISTS bank_info TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE clinics ADD COLUMN IF NOT EXISTS address TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE clinics ADD COLUMN IF NOT EXISTS postal_code TEXT NOT NULL DEFAULT ''`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS metal_types (
@@ -626,7 +629,10 @@ function jobFromRow(r) {
 }
 
 function clinicFromRow(r) {
-  return { id: r.id, name: r.name, shortName: r.short_name, closingDay: r.closing_day };
+  return {
+    id: r.id, name: r.name, shortName: r.short_name, closingDay: r.closing_day,
+    bankInfo: r.bank_info || '', address: r.address || '', postalCode: r.postal_code || '',
+  };
 }
 
 function productFromRow(r) {
@@ -1108,6 +1114,77 @@ app.delete('/api/metal-stocks/:id', async (req, res) => {
     const result = await pool.query('DELETE FROM metal_stocks WHERE id=$1', [req.params.id]);
     if (result.rowCount === 0) return res.status(404).json({ error: '見つかりません' });
     res.status(204).end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+// ─── Invoice API ─────────────────────────────────────────────────────────────
+
+app.get('/api/invoices', async (req, res) => {
+  try {
+    const { clinicId, year, month } = req.query;
+    if (!clinicId || !year || !month) {
+      return res.status(400).json({ error: 'clinicId, year, month は必須です' });
+    }
+    const y = parseInt(year), m = parseInt(month);
+
+    // 締め日ルール: 前月21日〜当月20日
+    const pad = n => String(n).padStart(2, '0');
+    const prevY = m === 1 ? y - 1 : y;
+    const prevM = m === 1 ? 12 : m - 1;
+    const dateFrom = `${prevY}-${pad(prevM)}-21`;
+    const dateTo   = `${y}-${pad(m)}-20`;
+
+    // 医院情報取得
+    const clinicRes = await pool.query('SELECT * FROM clinics WHERE id=$1', [clinicId]);
+    if (clinicRes.rowCount === 0) return res.status(404).json({ error: '医院が見つかりません' });
+    const clinic = clinicFromRow(clinicRes.rows[0]);
+
+    // 対象期間の納品書取得（delivery_date は TEXT 型）
+    const { rows } = await pool.query(
+      `SELECT * FROM delivery_notes
+       WHERE clinic_id = $1
+         AND delivery_date >= $2
+         AND delivery_date <= $3
+       ORDER BY delivery_date ASC, delivery_no ASC`,
+      [clinicId, dateFrom, dateTo]
+    );
+
+    const notes = rows.map(deliveryNoteFromRow);
+    const totalGiko     = notes.reduce((s, n) => s + n.subtotalGiko, 0);
+    const totalMaterial = notes.reduce((s, n) => s + n.subtotalMaterial, 0);
+    const totalTax      = notes.reduce((s, n) => s + n.tax, 0);
+    const totalAmount   = notes.reduce((s, n) => s + n.total, 0);
+
+    res.json({
+      clinic,
+      year: y, month: m,
+      dateFrom, dateTo,
+      notes,
+      totalGiko, totalMaterial, totalTax, totalAmount,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
+// PATCH clinics/:id （bank_info / address / postal_code 更新用）
+app.patch('/api/clinics/:id', async (req, res) => {
+  try {
+    const { bankInfo, address, postalCode } = req.body;
+    const { rows } = await pool.query(
+      `UPDATE clinics SET
+         bank_info   = COALESCE($1, bank_info),
+         address     = COALESCE($2, address),
+         postal_code = COALESCE($3, postal_code)
+       WHERE id=$4 RETURNING *`,
+      [bankInfo ?? null, address ?? null, postalCode ?? null, req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: '医院が見つかりません' });
+    res.json(clinicFromRow(rows[0]));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DBエラー' });
