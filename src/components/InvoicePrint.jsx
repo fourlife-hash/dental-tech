@@ -57,7 +57,7 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
         </div>
         <div style={{ textAlign: 'right', fontSize: 11, lineHeight: 2 }}>
           <div>請求日　{fmtJP(todayStr)}</div>
-          <div>〒601-8414</div>
+          <div>〒601-8472</div>
           <div>京都市南区八条坊門町7-6</div>
           <div>インボイス登録番号</div>
           <div>T3-8103-2874-8548</div>
