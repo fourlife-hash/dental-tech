@@ -789,7 +789,7 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
 
 /* ─── @media print ─── */
 @media print {
-  @page { size: A5 landscape; margin: 0; }
+  @page { margin: 0; }
 
   body * { visibility: hidden; }
 
@@ -1059,7 +1059,7 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
 
 /* ── 納品書印刷バグ修正: position:fixed が全ページに繰り返される問題を解消 ── */
 @media print {
-  @page { size: A5 landscape; margin: 8mm; }
+  @page { margin: 8mm; }
 
   body * { visibility: hidden; }
   .print-overlay { visibility: visible !important; position: static !important; background: transparent !important; }
