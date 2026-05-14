@@ -753,14 +753,19 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
 }
 .dp-metal {
   display: flex;
-  gap: 4mm;
-  align-items: center;
+  flex-direction: column;
+  gap: 1.5mm;
   font-size: 8.5pt;
   border: 0.5pt solid #aaa;
   padding: 1.5mm 3mm;
   border-radius: 2mm;
 }
-.dp-metal-label { font-weight: 700; }
+.dp-metal-row {
+  display: flex;
+  gap: 4mm;
+  align-items: center;
+}
+.dp-metal-label { font-weight: 700; min-width: 7em; }
 
 .dp-totals {
   display: flex;

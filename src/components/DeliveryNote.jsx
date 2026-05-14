@@ -77,7 +77,8 @@ export default function DeliveryNote() {
   const [formData, setFormData]       = useState(null);
   const [notes, setNotes]             = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
-  const [printNotes, setPrintNotes]   = useState(null);
+  const [printNotes, setPrintNotes]         = useState(null);
+  const [printMetalBalance, setPrintMetalBalance] = useState(null);
 
   useEffect(() => {
     fetch('/api/clinics').then(r => r.json()).then(setClinics);
@@ -133,7 +134,7 @@ export default function DeliveryNote() {
     setScreen('form');
   }
 
-  function handleClinicPrint(clinicName) {
+  async function handleClinicPrint(clinicName) {
     const clinicNotes = savedNotes
       .filter(n => n.clinicName === clinicName)
       .sort((a, b) => a.deliveryNo.localeCompare(b.deliveryNo));
@@ -141,6 +142,14 @@ export default function DeliveryNote() {
       alert('この医院の保存済みデータがありません');
       return;
     }
+    // 医院の金属残量を取得
+    const summary = await fetch('/api/metal-stocks/summary').then(r => r.json());
+    const cs = summary.filter(s => s.clinicName === clinicName);
+    const metalBalance = {
+      para: cs.find(s => s.metalType === 'パラジウム')?.balance ?? 0,
+      miro: cs.find(s => s.metalType === 'ミロ')?.balance ?? 0,
+    };
+    setPrintMetalBalance(metalBalance);
     setPrintNotes(clinicNotes);
   }
 
@@ -296,7 +305,8 @@ export default function DeliveryNote() {
       {printNotes && (
         <DeliveryNotePrint
           notes={printNotes}
-          onClose={() => setPrintNotes(null)}
+          metalBalance={printMetalBalance}
+          onClose={() => { setPrintNotes(null); setPrintMetalBalance(null); }}
         />
       )}
     </div>

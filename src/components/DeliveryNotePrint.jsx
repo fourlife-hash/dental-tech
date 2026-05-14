@@ -19,7 +19,7 @@ function fmtYen(n) {
 }
 
 // note (単件後方互換) または notes (複数件) を受け取る
-export default function DeliveryNotePrint({ note, notes, onClose }) {
+export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }) {
   function handlePrint() { window.print(); }
 
   // 必ず配列に正規化
@@ -159,9 +159,20 @@ export default function DeliveryNotePrint({ note, notes, onClose }) {
         {/* ── フッター（全患者合計） ── */}
         <div className="dp-footer">
           <div className="dp-metal">
-            <span className="dp-metal-label">金属残量</span>
-            <span>パラ {totals.paraGram}g</span>
-            <span>ミロ {totals.miroGram}g</span>
+            {(totals.paraGram > 0 || totals.miroGram > 0) && (
+              <div className="dp-metal-row">
+                <span className="dp-metal-label">使用した金属</span>
+                {totals.paraGram > 0 && <span>パラ {totals.paraGram}g</span>}
+                {totals.miroGram > 0 && <span>ミロ {totals.miroGram}g</span>}
+              </div>
+            )}
+            {metalBalance && (
+              <div className="dp-metal-row">
+                <span className="dp-metal-label">金属残量</span>
+                <span>パラ {metalBalance.para.toFixed(2)}g</span>
+                <span>ミロ {metalBalance.miro.toFixed(2)}g</span>
+              </div>
+            )}
           </div>
           <div className="dp-totals">
             <div className="dp-total-row">
