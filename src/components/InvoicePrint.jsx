@@ -50,8 +50,8 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
 
   if (!invoiceData) return null;
   const { clinic, year, month, notes, totalGiko, totalMaterial, totalTax, totalAmount } = invoiceData;
-  const baseUp    = totalBaseUp ?? invoiceData.totalBaseUp ?? 0;
-  const showBaseUp = baseUp > 0;
+  const baseUp     = totalBaseUp ?? invoiceData.totalBaseUp ?? 0;
+  const showBaseUp = true; // 常に表示（0円でも記載）
   const grandTotal = totalAmount + carryOver;
 
   const now = new Date();
