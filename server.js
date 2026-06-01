@@ -1439,6 +1439,12 @@ app.post('/api/restore', async (req, res) => {
       );
     }
 
+    // SERIALシーケンスを最大IDに合わせてリセット（復元後の重複を防ぐ）
+    await client.query(`SELECT setval('metal_types_id_seq',    COALESCE((SELECT MAX(id) FROM metal_types),    0) + 1, false)`);
+    await client.query(`SELECT setval('metal_stocks_id_seq',   COALESCE((SELECT MAX(id) FROM metal_stocks),   0) + 1, false)`);
+    await client.query(`SELECT setval('invoice_history_id_seq',COALESCE((SELECT MAX(id) FROM invoice_history),0) + 1, false)`);
+    await client.query(`SELECT setval('company_info_id_seq',   COALESCE((SELECT MAX(id) FROM company_info),   0) + 1, false)`);
+
     await client.query('COMMIT');
     res.json({
       restored: {
