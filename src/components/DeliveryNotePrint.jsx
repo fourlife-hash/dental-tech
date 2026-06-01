@@ -9,7 +9,6 @@ const COMPANY = {
 };
 
 const BLUE = '#4A90D9';
-const MIN_ROWS = 13; // ページを埋めるのに必要な空白行数
 
 function fmtDate(str) {
   if (!str) return '';
@@ -26,7 +25,13 @@ const PRINT_CSS = `
     font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;
     font-size: 9pt; color: #222; margin: 0; padding: 0;
   }
-  .dp-page { width: 100%; }
+  /* ページ全体：縦フレックス・印刷可能高さを最低確保 */
+  .dp-page {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 124mm;
+  }
   .dp-header {
     display: flex; justify-content: space-between; align-items: flex-start;
     margin-bottom: 1.5mm;
@@ -44,11 +49,8 @@ const PRINT_CSS = `
     padding-bottom: 1mm; margin-bottom: 2mm;
     display: inline-block; min-width: 50mm;
   }
-  /* テーブルは自然な高さ・空白行を固定高さで埋める */
-  .dp-table-wrap { }
+  /* テーブルは自然な高さ（データ行のみ・空白行なし） */
   table { border-collapse: collapse; width: 100%; }
-  .dp-table { }
-  .dp-empty-row td { height: 5.5mm; }
   .dp-table th {
     background: #333; color: #fff; padding: 3px 4px;
     font-size: 8.5pt; border: 0.5pt solid #555; text-align: center;
@@ -61,7 +63,6 @@ const PRINT_CSS = `
   .dp-center { text-align: center; }
   .dp-right  { text-align: right; }
   .dp-no     { font-size: 7pt; color: #555; }
-  .dp-empty-row td { border-color: #ddd; }
   .dp-col-no-patient { width: 20%; }
   .dp-col-shiki      { width: 10%; }
   .dp-col-giko       { width: 32%; }
@@ -69,8 +70,9 @@ const PRINT_CSS = `
   .dp-col-price      { width: 12%; }
   .dp-col-qty        { width: 7%;  }
   .dp-col-amount     { width: 12%; }
-  /* フッターバー */
-  .dp-total-bar { width: 100%; border-collapse: collapse; margin-top: 0; }
+  /* フッター領域：margin-top:auto で常にページ下部へ */
+  .dp-bottom { margin-top: auto; padding-top: 3mm; }
+  .dp-total-bar { width: 100%; border-collapse: collapse; }
   .dp-bar-label {
     background: #333; color: #fff; padding: 3px 5px;
     font-size: 8.5pt; font-weight: 700; border: 0.5pt solid #555;
@@ -103,9 +105,6 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
     }),
     { subtotalGiko: 0, subtotalMaterial: 0, tax: 0, total: 0, baseUpSupport: 0 }
   );
-
-  const totalDataRows = noteList.reduce((s, n) => s + (n.rows?.length || 0), 0);
-  const emptyCount    = Math.max(0, MIN_ROWS - totalDataRows);
 
   function handlePrint() {
     const el = printRef.current;
@@ -197,19 +196,12 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
           );
         })}
 
-        {emptyCount > 0 && (
-          <tbody>
-            {Array.from({ length: emptyCount }).map((_, i) => (
-              <tr key={`e-${i}`} className="dp-empty-row">
-                <td colSpan={7}>&nbsp;</td>
-              </tr>
-            ))}
-          </tbody>
-        )}
       </table>
 
       </div>{/* end dp-table-wrap */}
 
+      {/* フッター領域（margin-top:auto でページ下部に固定） */}
+      <div className="dp-bottom">
       {/* 横フッターバー */}
       <table className="dp-total-bar">
         <tbody>
@@ -239,6 +231,7 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
         if (!parts.length) return null;
         return <div className="dp-metal-text">{parts.join('　')}　{now.getMonth()+1}月{now.getDate()}日現在</div>;
       })()}
+      </div>{/* end dp-bottom */}
     </div>
   );
 
