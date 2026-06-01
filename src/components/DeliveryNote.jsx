@@ -142,13 +142,17 @@ export default function DeliveryNote() {
       alert('この医院の保存済みデータがありません');
       return;
     }
-    // 医院の金属残量を取得
-    const summary = await fetch('/api/metal-stocks/summary').then(r => r.json());
-    const cs = summary.filter(s => s.clinicName === clinicName);
-    const metalBalance = {
-      para: cs.find(s => s.metalType === 'パラジウム')?.balance ?? 0,
-      miro: cs.find(s => s.metalType === 'ミロ')?.balance ?? 0,
-    };
+    // 残量を表示しない医院リスト
+    const NO_BALANCE_CLINICS = ['くいなばしデンタルクリニック'];
+    let metalBalance = null;
+    if (!NO_BALANCE_CLINICS.includes(clinicName)) {
+      const summary = await fetch('/api/metal-stocks/summary').then(r => r.json());
+      const cs = summary.filter(s => s.clinicName === clinicName);
+      metalBalance = {
+        para: cs.find(s => s.metalType === 'パラジウム')?.balance ?? 0,
+        miro: cs.find(s => s.metalType === 'ミロ')?.balance ?? 0,
+      };
+    }
     setPrintMetalBalance(metalBalance);
     setPrintNotes(clinicNotes);
   }
