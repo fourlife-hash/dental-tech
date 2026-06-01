@@ -18,21 +18,49 @@ function fmtDate(str) {
 }
 function fmtYen(n) { return `¥${(n || 0).toLocaleString()}`; }
 
-// 印刷用CSS（A5横・グレースケール）
+// 印刷用CSS（A5横・グレースケール・フッター底固定）
 const PRINT_CSS = `
   @page { size: A5 landscape; margin: 8mm; }
+  * { box-sizing: border-box; }
   body {
     font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;
     font-size: 9pt; color: #222; margin: 0; padding: 0;
   }
-  .dp-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2mm; }
-  .dp-title { font-size: 18pt; font-weight: 700; letter-spacing: 0.25em; color: #333; border-bottom: 2pt solid #333; padding-bottom: 1mm; }
-  .dp-company-right { text-align: right; font-size: 8pt; line-height: 1.7; }
+  /* ページ全体をflexで縦並び、高さを印刷エリアに固定 */
+  .dp-page {
+    display: flex;
+    flex-direction: column;
+    height: 130mm;
+  }
+  .dp-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 1.5mm;
+  }
+  .dp-title {
+    font-size: 20pt; font-weight: 700; letter-spacing: 0.3em;
+    color: #222; border-bottom: 2pt solid #222;
+    padding-bottom: 1mm; line-height: 1.2;
+  }
+  .dp-company-right { text-align: right; font-size: 8pt; line-height: 1.8; }
   .dp-company-name  { font-weight: 700; font-size: 10pt; }
-  .dp-clinic-line   { font-size: 11pt; font-weight: 700; border-bottom: 1pt solid #333; padding-bottom: 1mm; margin-bottom: 2mm; display: inline-block; min-width: 50mm; }
+  .dp-clinic-line {
+    font-size: 12pt; font-weight: 700;
+    border-bottom: 1pt solid #333;
+    padding-bottom: 1mm; margin-bottom: 2mm;
+    display: inline-block; min-width: 50mm;
+  }
+  /* テーブルセクション：残り空間を全て使う */
+  .dp-table-wrap { flex: 1; overflow: hidden; }
   table { border-collapse: collapse; width: 100%; }
-  .dp-table th { background: #333; color: #fff; padding: 2px 4px; font-size: 8pt; border: 0.5pt solid #555; text-align: center; }
-  .dp-table td { padding: 2px 4px; font-size: 8.5pt; border: 0.5pt solid #bbb; vertical-align: middle; line-height: 1.3; }
+  .dp-table { height: 100%; }
+  .dp-table th {
+    background: #333; color: #fff; padding: 2.5px 4px;
+    font-size: 8.5pt; border: 0.5pt solid #555; text-align: center;
+  }
+  .dp-table td {
+    padding: 2.5px 4px; font-size: 9pt;
+    border: 0.5pt solid #bbb; vertical-align: middle; line-height: 1.35;
+  }
   .dp-center { text-align: center; }
   .dp-right  { text-align: right; }
   .dp-no     { font-size: 7pt; color: #555; }
@@ -44,11 +72,19 @@ const PRINT_CSS = `
   .dp-col-price      { width: 12%; }
   .dp-col-qty        { width: 7%;  }
   .dp-col-amount     { width: 12%; }
-  .dp-total-bar { margin-top: 2mm; width: 100%; border-collapse: collapse; }
-  .dp-bar-label { background: #333; color: #fff; padding: 2px 4px; font-size: 8pt; font-weight: 700; border: 0.5pt solid #555; text-align: center; white-space: nowrap; }
-  .dp-bar-value { text-align: right; padding: 2px 6px; border: 0.5pt solid #bbb; font-size: 8.5pt; min-width: 16mm; }
-  .dp-bar-total { font-weight: 700; font-size: 9.5pt; }
-  .dp-metal-text { font-size: 8pt; margin-top: 1.5mm; }
+  /* フッターバー */
+  .dp-total-bar { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+  .dp-bar-label {
+    background: #333; color: #fff; padding: 3px 5px;
+    font-size: 8.5pt; font-weight: 700; border: 0.5pt solid #555;
+    text-align: center; white-space: nowrap;
+  }
+  .dp-bar-value {
+    text-align: right; padding: 3px 6px;
+    border: 0.5pt solid #bbb; font-size: 9pt; min-width: 16mm;
+  }
+  .dp-bar-total { font-weight: 700; font-size: 10pt; }
+  .dp-metal-text { font-size: 8pt; margin-top: 2mm; }
 `;
 
 export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }) {
@@ -94,7 +130,7 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
   }
 
   const content = (
-    <div ref={printRef}>
+    <div ref={printRef} className="dp-page">
       {/* ヘッダー */}
       <div className="dp-header">
         <div className="dp-title-left">
@@ -112,7 +148,8 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
       {/* 医院名 */}
       <div className="dp-clinic-line">{clinicName}&emsp;様</div>
 
-      {/* 明細テーブル */}
+      {/* 明細テーブル（flex:1 で残り高さを全て使う） */}
+      <div className="dp-table-wrap">
       <table className="dp-table">
         <colgroup>
           <col className="dp-col-no-patient" />
@@ -173,6 +210,8 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
           </tbody>
         )}
       </table>
+
+      </div>{/* end dp-table-wrap */}
 
       {/* 横フッターバー */}
       <table className="dp-total-bar">
