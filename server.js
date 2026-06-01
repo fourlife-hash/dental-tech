@@ -1485,6 +1485,30 @@ app.post('/api/restore', async (req, res) => {
   }
 });
 
+// ─── 金属使用量 一括再同期 ───────────────────────────────────────────────────────
+
+app.post('/api/recalculate-metals', async (req, res) => {
+  try {
+    // 全納品書を取得して金属使用量を再同期
+    const { rows } = await pool.query('SELECT * FROM delivery_notes');
+    let count = 0;
+    for (const r of rows) {
+      await syncMetalStocksForNote(
+        r.id,
+        r.delivery_date,
+        r.clinic_name,
+        parseFloat(r.para_gram) || 0,
+        parseFloat(r.miro_gram) || 0
+      );
+      count++;
+    }
+    res.json({ message: `${count}件の納品書から金属使用量を再計算しました` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
 // ─── SPA fallback ────────────────────────────────────────────────────────────
 
 app.get('*', (req, res) => {
