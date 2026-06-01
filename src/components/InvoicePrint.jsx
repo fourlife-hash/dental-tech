@@ -41,7 +41,7 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
         body { font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif; font-size: 11px; color: #222; }
         table { border-collapse: collapse; width: 100%; }
         th { background: #4CAF50; color: #fff; font-weight: bold; border: 1px solid #a8d5b5; padding: 5px 4px; font-size: 11px; line-height: 1.6; }
-        td { border: 1px solid #a8d5b5; padding: 4px 6px; font-size: 11px; line-height: 1.6; }
+        td { border: 1px solid #a8d5b5; padding: 4px 6px; font-size: 11px; line-height: 1.6; word-break: break-all; overflow-wrap: anywhere; }
         @media print { @page { size: A4 portrait; margin: 15mm; } }
       </style></head><body>` + el.innerHTML + `</body></html>`);
     win.document.close();
@@ -138,40 +138,38 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
       {/* ─── 明細テーブル ─── */}
       <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: 20, tableLayout: 'fixed' }}>
         <colgroup>
-          <col style={{ width: '7%' }} />   {/* 納品No */}
-          <col style={{ width: '7%' }} />   {/* 指示書No */}
-          <col style={{ width: '9%' }} />   {/* 納品日 */}
-          <col style={{ width: '20%' }} />  {/* 患者名 */}
-          <col style={{ width: '11%' }} />  {/* 技工 */}
-          <col style={{ width: '9%' }} />   {/* 材料 */}
-          <col style={{ width: '11%' }} />  {/* ベースアップ支援料 */}
+          <col style={{ width: '8%' }} />   {/* 納品No */}
+          <col style={{ width: '13%' }} />  {/* 指示書No */}
+          <col style={{ width: '10%' }} />  {/* 納品日 */}
+          <col style={{ width: '18%' }} />  {/* 患者名 */}
+          <col style={{ width: '12%' }} />  {/* 技工 */}
+          <col style={{ width: '10%' }} />  {/* 材料 */}
+          <col style={{ width: '10%' }} />  {/* ベースアップ支援料 */}
           <col style={{ width: '9%' }} />   {/* 消費税 */}
           <col style={{ width: '10%' }} />  {/* 納品額 */}
-          <col style={{ width: '7%' }} />   {/* 余白 */}
         </colgroup>
         <thead>
           <tr>
-            {['納品No','指示書No','納品日','患者名','（技工）','（材料）','ﾍﾞｰｽｱｯﾌﾟ支援料','消費税','納品額',''].map(h => (
+            {['納品No','指示書No','納品日','患者名','（技工）','（材料）','ﾍﾞｰｽｱｯﾌﾟ支援料','消費税','納品額'].map(h => (
               <th key={h} style={TH()}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {notes.length === 0 && (
-            <tr><td colSpan={10} style={TD({ textAlign: 'center', color: '#888' })}>対象期間の納品書がありません</td></tr>
+            <tr><td colSpan={9} style={TD({ textAlign: 'center', color: '#888' })}>対象期間の納品書がありません</td></tr>
           )}
           {notes.map((n, i) => (
             <tr key={n.id} style={{ background: i % 2 === 1 ? '#f0f7f0' : 'transparent' }}>
               <td style={TD({ textAlign: 'center' })}>{n.deliveryNo}</td>
-              <td style={TD({ textAlign: 'center' })}>{n.shiki || ''}</td>
-              <td style={TD({ textAlign: 'center', whiteSpace: 'nowrap' })}>{fmtDate(n.deliveryDate)}</td>
-              <td style={TD()}>{n.patientName}</td>
+              <td style={TD({ textAlign: 'center', wordBreak: 'break-all', overflowWrap: 'anywhere' })}>{n.shiki || ''}</td>
+              <td style={TD({ textAlign: 'center' })}>{fmtDate(n.deliveryDate)}</td>
+              <td style={TD({ overflowWrap: 'anywhere' })}>{n.patientName}</td>
               <td style={TD({ textAlign: 'right' })}>¥{fmt(n.subtotalGiko)}</td>
               <td style={TD({ textAlign: 'right' })}>¥{fmt(n.subtotalMaterial)}</td>
               <td style={TD({ textAlign: 'right' })}>{n.baseUpSupport > 0 ? `¥${fmt(n.baseUpSupport)}` : ''}</td>
               <td style={TD({ textAlign: 'right' })}>¥{fmt(n.tax)}</td>
               <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>¥{fmt(n.total)}</td>
-              <td style={TD()} />
             </tr>
           ))}
           {/* 合計行 */}
@@ -182,7 +180,6 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
             <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>{baseUp > 0 ? `¥${fmt(baseUp)}` : ''}</td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>¥{fmt(totalTax)}</td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>¥{fmt(totalAmount)}</td>
-            <td style={TD()} />
           </tr>
         </tbody>
       </table>
