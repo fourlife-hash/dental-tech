@@ -56,9 +56,11 @@ const PRINT_CSS = `
   }
   .dp-table td {
     padding: 3.5px 4px; font-size: 9pt;
-    border: 0.5pt solid #bbb; vertical-align: middle; line-height: 1.4;
+    border-right: 0.5pt solid #bbb;
+    border-bottom: none; border-top: none; border-left: none;
+    vertical-align: middle; line-height: 1.4;
   }
-  .dp-empty-row td { border-color: #ddd; }
+  .dp-empty-row td { border-bottom: 0.5pt solid #ddd; }
   .dp-center { text-align: center; }
   .dp-right  { text-align: right; }
   .dp-no     { font-size: 7pt; color: #555; }
@@ -166,31 +168,39 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
           const isNew = Boolean(n.patientName);
           return (
             <tbody key={n.id}>
-              {isNew ? (n.rows || []).map((row, i) => (
-                <tr key={i}>
-                  <td>
-                    {i === 0 && <><div className="dp-no">No.{n.deliveryNo}</div><div>{n.patientName}</div></>}
-                  </td>
-                  <td style={{ textAlign:'center', verticalAlign:'middle' }}>
-                    {i === 0 ? renderShiki(n.shiki) : ''}
-                  </td>
-                  <td>{row.gikobutsuName}</td>
-                  <td className="dp-center">{row.category}</td>
-                  <td className="dp-right">{row.unitPrice ? fmtYen(row.unitPrice) : ''}</td>
-                  <td className="dp-center">{row.quantity}</td>
-                  <td className="dp-right">{row.amount ? fmtYen(row.amount) : ''}</td>
-                </tr>
-              )) : (n.rows || []).map((row, i) => (
-                <tr key={i}>
-                  <td>{i === 0 && <div className="dp-no">No.{n.deliveryNo}</div>}{row.patientName}</td>
-                  <td style={{ textAlign:'center', verticalAlign:'middle' }}>{renderShiki(row.shiki)}</td>
-                  <td>{row.gikobutsuName}</td>
-                  <td className="dp-center">{row.category}</td>
-                  <td className="dp-right">{row.unitPrice ? fmtYen(row.unitPrice) : ''}</td>
-                  <td className="dp-center">{row.quantity}</td>
-                  <td className="dp-right">{row.amount ? fmtYen(row.amount) : ''}</td>
-                </tr>
-              ))}
+              {(() => {
+                const rows = n.rows || [];
+                const isNew = Boolean(n.patientName);
+                const B = '0.5pt solid #bbb'; // 患者間の区切り線
+                return rows.map((row, i) => {
+                  const last = i === rows.length - 1;
+                  const bB = last ? B : 'none';
+                  return (
+                    <tr key={i}>
+                      {/* 患者名セル: rowSpan で縦中央 */}
+                      {i === 0 && (
+                        <td rowSpan={rows.length}
+                            style={{ verticalAlign:'middle', borderRight:B, borderBottom:B, padding:'4px' }}>
+                          <div className="dp-no">No.{n.deliveryNo}</div>
+                          {isNew ? n.patientName : row.patientName}
+                        </td>
+                      )}
+                      {/* 部位セル: rowSpan で縦中央 */}
+                      {i === 0 && (
+                        <td rowSpan={rows.length}
+                            style={{ textAlign:'center', verticalAlign:'middle', borderRight:B, borderBottom:B }}>
+                          {renderShiki(isNew ? n.shiki : row.shiki)}
+                        </td>
+                      )}
+                      <td style={{ borderBottom:bB, borderRight:B }}>{row.gikobutsuName}</td>
+                      <td style={{ borderBottom:bB, borderRight:B, textAlign:'center' }}>{row.category}</td>
+                      <td style={{ borderBottom:bB, borderRight:B, textAlign:'right' }}>{row.unitPrice ? fmtYen(row.unitPrice) : ''}</td>
+                      <td style={{ borderBottom:bB, borderRight:B, textAlign:'center' }}>{row.quantity}</td>
+                      <td style={{ borderBottom:bB, textAlign:'right' }}>{row.amount ? fmtYen(row.amount) : ''}</td>
+                    </tr>
+                  );
+                });
+              })()}
             </tbody>
           );
         })}
