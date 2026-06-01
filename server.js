@@ -600,6 +600,20 @@ async function initDb() {
     ALTER TABLE metal_stocks ADD COLUMN IF NOT EXISTS delivery_note_id TEXT
   `);
 
+  await pool.query(`
+    ALTER TABLE delivery_notes ADD COLUMN IF NOT EXISTS base_up_support INTEGER NOT NULL DEFAULT 0
+  `);
+
+  await pool.query(`
+    ALTER TABLE invoice_history ADD COLUMN IF NOT EXISTS notes_snapshot JSONB DEFAULT '[]'
+  `);
+  await pool.query(`
+    ALTER TABLE invoice_history ADD COLUMN IF NOT EXISTS grand_total INTEGER DEFAULT 0
+  `);
+  await pool.query(`
+    ALTER TABLE invoice_history ADD COLUMN IF NOT EXISTS bank_info TEXT DEFAULT ''
+  `);
+
   // 医院名の表記揺れを修正（既存DBデータ対応）
   await pool.query("UPDATE jobs SET clinic = 'クロイ歯科医院' WHERE clinic = 'クロイD・C'");
 
@@ -687,6 +701,7 @@ function deliveryNoteFromRow(r) {
     subtotalMaterial: parseInt(r.subtotal_material) || 0,
     tax:              parseInt(r.tax)               || 0,
     total:            parseInt(r.total)             || 0,
+    baseUpSupport:    parseInt(r.base_up_support)   || 0,
     createdAt:        r.created_at,
   };
 }
@@ -901,7 +916,7 @@ app.get('/api/delivery-notes/:id', async (req, res) => {
 app.post('/api/delivery-notes', async (req, res) => {
   const { clinicId, clinicName, deliveryDate, patientName, shiki,
           rows, paraGram, miroGram,
-          subtotalGiko, subtotalMaterial, tax, total } = req.body;
+          subtotalGiko, subtotalMaterial, tax, total, baseUpSupport } = req.body;
   if (!clinicName || !deliveryDate) {
     return res.status(400).json({ error: '必須項目が不足しています' });
   }
@@ -918,13 +933,15 @@ app.post('/api/delivery-notes', async (req, res) => {
           `UPDATE delivery_notes SET
              clinic_id=$1, shiki=$2,
              rows=$3, para_gram=$4, miro_gram=$5,
-             subtotal_giko=$6, subtotal_material=$7, tax=$8, total=$9
-           WHERE id=$10 RETURNING *`,
+             subtotal_giko=$6, subtotal_material=$7, tax=$8, total=$9,
+             base_up_support=$10
+           WHERE id=$11 RETURNING *`,
           [
             clinicId || null, shiki || '',
             JSON.stringify(rows || []),
             paraGram || 0, miroGram || 0,
             subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
+            baseUpSupport || 0,
             dupId,
           ]
         );
@@ -945,14 +962,16 @@ app.post('/api/delivery-notes', async (req, res) => {
       `INSERT INTO delivery_notes
          (id, delivery_no, clinic_id, clinic_name, delivery_date,
           patient_name, shiki,
-          rows, para_gram, miro_gram, subtotal_giko, subtotal_material, tax, total, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+          rows, para_gram, miro_gram, subtotal_giko, subtotal_material, tax, total,
+          base_up_support, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
       [
         id, deliveryNo, clinicId || null, clinicName, deliveryDate,
         patientName || '', shiki || '',
         JSON.stringify(rows || []),
         paraGram || 0, miroGram || 0,
         subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
+        baseUpSupport || 0,
         createdAt,
       ]
     );
@@ -969,7 +988,7 @@ app.put('/api/delivery-notes/:id', async (req, res) => {
   const { id } = req.params;
   const { clinicId, clinicName, deliveryDate, patientName, shiki,
           rows, paraGram, miroGram,
-          subtotalGiko, subtotalMaterial, tax, total } = req.body;
+          subtotalGiko, subtotalMaterial, tax, total, baseUpSupport } = req.body;
   if (!clinicName || !deliveryDate) {
     return res.status(400).json({ error: '必須項目が不足しています' });
   }
@@ -979,14 +998,16 @@ app.put('/api/delivery-notes/:id', async (req, res) => {
          clinic_id=$1, clinic_name=$2, delivery_date=$3,
          patient_name=$4, shiki=$5,
          rows=$6, para_gram=$7, miro_gram=$8,
-         subtotal_giko=$9, subtotal_material=$10, tax=$11, total=$12
-       WHERE id=$13 RETURNING *`,
+         subtotal_giko=$9, subtotal_material=$10, tax=$11, total=$12,
+         base_up_support=$13
+       WHERE id=$14 RETURNING *`,
       [
         clinicId || null, clinicName, deliveryDate,
         patientName || '', shiki || '',
         JSON.stringify(rows || []),
         paraGram || 0, miroGram || 0,
         subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
+        baseUpSupport || 0,
         id,
       ]
     );
@@ -1184,6 +1205,7 @@ app.get('/api/invoices', async (req, res) => {
     const totalGiko     = notes.reduce((s, n) => s + n.subtotalGiko, 0);
     const totalMaterial = notes.reduce((s, n) => s + n.subtotalMaterial, 0);
     const totalTax      = notes.reduce((s, n) => s + n.tax, 0);
+    const totalBaseUp   = notes.reduce((s, n) => s + (n.baseUpSupport || 0), 0);
     const totalAmount   = notes.reduce((s, n) => s + n.total, 0);
 
     res.json({
@@ -1191,7 +1213,7 @@ app.get('/api/invoices', async (req, res) => {
       year: y, month: m,
       dateFrom, dateTo,
       notes,
-      totalGiko, totalMaterial, totalTax, totalAmount,
+      totalGiko, totalMaterial, totalTax, totalBaseUp, totalAmount,
     });
   } catch (err) {
     console.error(err);
@@ -1235,19 +1257,41 @@ app.get('/api/invoice-history', async (req, res) => {
   }
 });
 
+app.get('/api/invoice-history/list', async (req, res) => {
+  try {
+    const { clinicId } = req.query;
+    const where = clinicId ? 'WHERE clinic_id=$1' : '';
+    const params = clinicId ? [clinicId] : [];
+    const { rows } = await pool.query(
+      `SELECT id, clinic_id, year, month, total_amount, grand_total, carry_over,
+              prev_amount, paid_amount, adjust_amount, bank_info, notes_snapshot, created_at
+       FROM invoice_history ${where} ORDER BY year DESC, month DESC`,
+      params
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
 app.post('/api/invoice-history', async (req, res) => {
   try {
-    const { clinicId, year, month, totalAmount, prevAmount, paidAmount, adjustAmount, carryOver } = req.body;
+    const { clinicId, year, month, totalAmount, prevAmount, paidAmount, adjustAmount, carryOver,
+            notesSnapshot, grandTotal, bankInfo } = req.body;
     const { rows } = await pool.query(
       `INSERT INTO invoice_history
-         (clinic_id, year, month, total_amount, prev_amount, paid_amount, adjust_amount, carry_over)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         (clinic_id, year, month, total_amount, prev_amount, paid_amount, adjust_amount, carry_over,
+          notes_snapshot, grand_total, bank_info)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        ON CONFLICT (clinic_id, year, month)
        DO UPDATE SET
          total_amount=$4, prev_amount=$5, paid_amount=$6, adjust_amount=$7, carry_over=$8,
+         notes_snapshot=$9, grand_total=$10, bank_info=$11,
          created_at=NOW()
        RETURNING *`,
-      [clinicId, year, month, totalAmount, prevAmount, paidAmount, adjustAmount ?? 0, carryOver]
+      [clinicId, year, month, totalAmount, prevAmount, paidAmount, adjustAmount ?? 0, carryOver,
+       JSON.stringify(notesSnapshot ?? []), grandTotal ?? 0, bankInfo ?? '']
     );
     res.status(201).json(rows[0]);
   } catch (err) {

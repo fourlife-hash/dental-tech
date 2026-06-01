@@ -28,7 +28,7 @@ const TD = (extra = {}) => ({
   ...extra,
 });
 
-export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adjustment, carryOver, bankInfo }) {
+export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adjustment, carryOver, bankInfo, totalBaseUp }) {
   const printRef = useRef();
 
   function handlePrint() {
@@ -51,6 +51,7 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
 
   if (!invoiceData) return null;
   const { clinic, year, month, dateFrom, dateTo, notes, totalGiko, totalMaterial, totalTax, totalAmount } = invoiceData;
+  const baseUp = totalBaseUp ?? invoiceData.totalBaseUp ?? 0;
   const grandTotal = totalAmount + carryOver;
 
   const now = new Date();
@@ -109,7 +110,7 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
       <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: 16 }}>
         <thead>
           <tr>
-            {['前回御請求額','前回御入金額','調整額','繰越額','（技工）','（材料）','消費税','今回納品額'].map(h => (
+            {['前回御請求額','前回御入金額','調整額','繰越額','（技工）','（材料）','ベースアップ支援料','消費税','今回納品額'].map(h => (
               <th key={h} style={TH()}>{h}</th>
             ))}
           </tr>
@@ -122,6 +123,7 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
             <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>¥{fmt(carryOver)}</td>
             <td style={TD({ textAlign: 'right' })}>¥{fmt(totalGiko)}</td>
             <td style={TD({ textAlign: 'right' })}>¥{fmt(totalMaterial)}</td>
+            <td style={TD({ textAlign: 'right' })}>¥{fmt(baseUp)}</td>
             <td style={TD({ textAlign: 'right' })}>¥{fmt(totalTax)}</td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>¥{fmt(totalAmount)}</td>
           </tr>
@@ -136,26 +138,27 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
       {/* ─── 明細テーブル ─── */}
       <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: 20, tableLayout: 'fixed' }}>
         <colgroup>
-          <col style={{ width: '8%' }} />   {/* 納品No */}
-          <col style={{ width: '8%' }} />   {/* 指示書No */}
-          <col style={{ width: '10%' }} />  {/* 納品日 */}
-          <col style={{ width: '22%' }} />  {/* 患者名 */}
-          <col style={{ width: '12%' }} />  {/* 技工 */}
-          <col style={{ width: '10%' }} />  {/* 材料 */}
-          <col style={{ width: '10%' }} />  {/* 消費税 */}
-          <col style={{ width: '12%' }} />  {/* 納品額 */}
-          <col style={{ width: '8%' }} />   {/* 余白 */}
+          <col style={{ width: '7%' }} />   {/* 納品No */}
+          <col style={{ width: '7%' }} />   {/* 指示書No */}
+          <col style={{ width: '9%' }} />   {/* 納品日 */}
+          <col style={{ width: '20%' }} />  {/* 患者名 */}
+          <col style={{ width: '11%' }} />  {/* 技工 */}
+          <col style={{ width: '9%' }} />   {/* 材料 */}
+          <col style={{ width: '11%' }} />  {/* ベースアップ支援料 */}
+          <col style={{ width: '9%' }} />   {/* 消費税 */}
+          <col style={{ width: '10%' }} />  {/* 納品額 */}
+          <col style={{ width: '7%' }} />   {/* 余白 */}
         </colgroup>
         <thead>
           <tr>
-            {['納品No','指示書No','納品日','患者名','（技工）','（材料）','消費税','納品額',''].map(h => (
+            {['納品No','指示書No','納品日','患者名','（技工）','（材料）','ﾍﾞｰｽｱｯﾌﾟ支援料','消費税','納品額',''].map(h => (
               <th key={h} style={TH()}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {notes.length === 0 && (
-            <tr><td colSpan={9} style={TD({ textAlign: 'center', color: '#888' })}>対象期間の納品書がありません</td></tr>
+            <tr><td colSpan={10} style={TD({ textAlign: 'center', color: '#888' })}>対象期間の納品書がありません</td></tr>
           )}
           {notes.map((n, i) => (
             <tr key={n.id} style={{ background: i % 2 === 1 ? '#f0f7f0' : 'transparent' }}>
@@ -165,6 +168,7 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
               <td style={TD()}>{n.patientName}</td>
               <td style={TD({ textAlign: 'right' })}>¥{fmt(n.subtotalGiko)}</td>
               <td style={TD({ textAlign: 'right' })}>¥{fmt(n.subtotalMaterial)}</td>
+              <td style={TD({ textAlign: 'right' })}>{n.baseUpSupport > 0 ? `¥${fmt(n.baseUpSupport)}` : ''}</td>
               <td style={TD({ textAlign: 'right' })}>¥{fmt(n.tax)}</td>
               <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>¥{fmt(n.total)}</td>
               <td style={TD()} />
@@ -175,6 +179,7 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
             <td colSpan={4} style={TD({ textAlign: 'right', fontWeight: 'bold' })}>合　計</td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>¥{fmt(totalGiko)}</td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>¥{fmt(totalMaterial)}</td>
+            <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>{baseUp > 0 ? `¥${fmt(baseUp)}` : ''}</td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>¥{fmt(totalTax)}</td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>¥{fmt(totalAmount)}</td>
             <td style={TD()} />

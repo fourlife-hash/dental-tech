@@ -38,8 +38,9 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
       total:            acc.total            + (n.total            || 0),
       paraGram:         acc.paraGram         + (n.paraGram         || 0),
       miroGram:         acc.miroGram         + (n.miroGram         || 0),
+      baseUpSupport:    acc.baseUpSupport    + (n.baseUpSupport    || 0),
     }),
-    { subtotalGiko: 0, subtotalMaterial: 0, tax: 0, total: 0, paraGram: 0, miroGram: 0 }
+    { subtotalGiko: 0, subtotalMaterial: 0, tax: 0, total: 0, paraGram: 0, miroGram: 0, baseUpSupport: 0 }
   );
 
   // 空白行数（最低 MIN_ROWS 行確保）
@@ -184,6 +185,11 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
             <div className="dp-total-row">
               <span>消費税10%</span><span>{fmtYen(totals.tax)}</span>
             </div>
+            {totals.baseUpSupport > 0 && (
+              <div className="dp-total-row">
+                <span>ベースアップ支援料</span><span>{fmtYen(totals.baseUpSupport)}</span>
+              </div>
+            )}
             <div className="dp-total-row dp-grand">
               <span>合計金額</span><span>{fmtYen(totals.total)}</span>
             </div>

@@ -63,6 +63,9 @@ export default function DeliveryNoteForm({
   const [miroGram, setMiroGram] = useState(
     sourceNote?.miroGram > 0 ? String(sourceNote.miroGram) : ''
   );
+  const [baseUpSupport, setBaseUpSupport] = useState(
+    sourceNote?.baseUpSupport > 0 ? 150 : 0
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -92,7 +95,12 @@ export default function DeliveryNoteForm({
     setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
   }
 
-  const totals = calcTotals(items);
+  const baseCalc = calcTotals(items);
+  // ベースアップ支援料は税込みのため total に直接加算（追加税なし）
+  const totals = {
+    ...baseCalc,
+    total: baseCalc.total + baseUpSupport,
+  };
 
   async function handleSave() {
     if (!clinicName) { alert('医院名が不明です'); return; }
@@ -113,14 +121,18 @@ export default function DeliveryNoteForm({
         })),
         paraGram:         parseFloat(paraGram) || 0,
         miroGram:         parseFloat(miroGram) || 0,
+        baseUpSupport,
         ...totals,
       };
 
       if (isEditing) {
         // 発行済み一覧からの修正 → 指定IDを更新
         await updateDeliveryNote(initialNote.id, payload);
+      } else if (existingNote?.id) {
+        // 患者一覧から再選択した保存済みノート → 同じIDを更新（重複防止）
+        await updateDeliveryNote(existingNote.id, payload);
       } else {
-        // 患者一覧から → サーバー側で同一clinic+date+patientをupsert
+        // 新規作成
         await createDeliveryNote(payload);
       }
 
@@ -253,17 +265,35 @@ export default function DeliveryNoteForm({
           </label>
         </div>
 
+        {/* ベースアップ支援料 */}
+        <div className="dn-section dn-metal" style={{ marginTop: '0.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={baseUpSupport === 150}
+              onChange={e => setBaseUpSupport(e.target.checked ? 150 : 0)}
+              style={{ width: 16, height: 16 }}
+            />
+            <span>ベースアップ支援料　¥150（税込）</span>
+          </label>
+        </div>
+
         {/* 合計 */}
         <div className="dn-totals">
           <div className="dn-total-row">
-            <span>技工合計</span><span>¥{totals.subtotalGiko.toLocaleString()}</span>
+            <span>技工合計</span><span>¥{baseCalc.subtotalGiko.toLocaleString()}</span>
           </div>
           <div className="dn-total-row">
-            <span>材料合計</span><span>¥{totals.subtotalMaterial.toLocaleString()}</span>
+            <span>材料合計</span><span>¥{baseCalc.subtotalMaterial.toLocaleString()}</span>
           </div>
           <div className="dn-total-row">
-            <span>消費税10%</span><span>¥{totals.tax.toLocaleString()}</span>
+            <span>消費税10%</span><span>¥{baseCalc.tax.toLocaleString()}</span>
           </div>
+          {baseUpSupport > 0 && (
+            <div className="dn-total-row">
+              <span>ベースアップ支援料</span><span>¥{baseUpSupport.toLocaleString()}</span>
+            </div>
+          )}
           <div className="dn-total-row dn-grand-total">
             <span>合計金額</span><span>¥{totals.total.toLocaleString()}</span>
           </div>
