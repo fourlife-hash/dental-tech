@@ -6,7 +6,7 @@ const COMPANY = {
   invoice:      'T3-8103-2874-8548',
 };
 
-const MIN_ROWS = 10;
+const MIN_ROWS = 7;
 
 function fmtDate(str) {
   if (!str) return '';
