@@ -1,3 +1,5 @@
+import { CrossDiagram, parseCross } from './ToothSelector.jsx';
+
 const COMPANY = {
   name:         'デンタル　テック　アライズ',
   zip:          '〒601-8414',
@@ -116,7 +118,13 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
                           </>
                         )}
                       </td>
-                      <td>{i === 0 ? (n.shiki || '') : ''}</td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                    {i === 0 && n.shiki
+                      ? (parseCross(n.shiki)
+                          ? <CrossDiagram shiki={n.shiki} cellSize={14} fontSize="8pt" borderColor="#888" />
+                          : n.shiki)
+                      : ''}
+                  </td>
                       <td>{row.gikobutsuName}</td>
                       <td className="dp-center">{row.category}</td>
                       <td className="dp-right">{row.unitPrice ? fmtYen(row.unitPrice) : ''}</td>
@@ -132,7 +140,13 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
                         {i === 0 && <div className="dp-no">No.{n.deliveryNo}</div>}
                         {row.patientName}
                       </td>
-                      <td>{row.shiki}</td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        {row.shiki
+                          ? (parseCross(row.shiki)
+                              ? <CrossDiagram shiki={row.shiki} cellSize={14} fontSize="8pt" borderColor="#888" />
+                              : row.shiki)
+                          : ''}
+                      </td>
                       <td>{row.gikobutsuName}</td>
                       <td className="dp-center">{row.category}</td>
                       <td className="dp-right">{row.unitPrice ? fmtYen(row.unitPrice) : ''}</td>
