@@ -52,7 +52,7 @@ export default function DeliveryNoteForm({
   const [products, setProducts]         = useState([]);
   const [prices, setPrices]             = useState([]);
   const [shiki, setShiki]               = useState(sourceNote?.shiki || job?.shiki || '');
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(sourceNote?.deliveryDate || deliveryDateProp || '');
   const [items, setItems]   = useState(
     sourceNote?.rows?.length > 0
       ? sourceNote.rows.map(r => makeItem(r))
