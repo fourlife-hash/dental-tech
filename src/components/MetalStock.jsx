@@ -307,10 +307,14 @@ export default function MetalStock() {
         </div>
         <button
           onClick={async () => {
-            const res = await fetch('/api/recalculate-metals', { method: 'POST' });
-            const d = await res.json();
-            alert(d.message || d.error);
-            await load();
+            try {
+              const res = await fetch('/api/recalculate-metals', { method: 'POST' });
+              const d = await res.json();
+              alert(d.message || d.error || '完了');
+              await load();
+            } catch (e) {
+              alert('エラー: ' + e.message);
+            }
           }}
           style={{ padding: '6px 16px', background: '#e65100', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 13 }}>
           金属使用量を再計算
