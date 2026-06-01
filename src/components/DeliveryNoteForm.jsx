@@ -113,6 +113,7 @@ export default function DeliveryNoteForm({
         clinicName,
         deliveryDate: date,
         patientName,
+        jobId:       job?.id || null,
         shiki,
         rows: items.map(item => ({
           gikobutsuName: item.gikobutsuName,
