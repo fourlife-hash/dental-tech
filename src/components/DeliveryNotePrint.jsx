@@ -9,7 +9,7 @@ const COMPANY = {
 };
 
 const BLUE = '#4A90D9';
-const MIN_ROWS = 14; // A5横でフッターがページ下部に来るよう空白行で埋める
+const MIN_ROWS = 4; // 最低限の空白行（グリッドレイアウトで底固定するため少なくてOK）
 
 function fmtDate(str) {
   if (!str) return '';
@@ -26,11 +26,11 @@ const PRINT_CSS = `
     font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;
     font-size: 9pt; color: #222; margin: 0; padding: 0;
   }
-  /* ページ全体をflexで縦並び */
+  /* グリッドでフッターをページ下部に固定 */
   .dp-page {
-    display: flex;
-    flex-direction: column;
-    min-height: 128mm;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto auto;
+    min-height: 126mm;
   }
   .dp-header {
     display: flex; justify-content: space-between; align-items: flex-start;
@@ -49,8 +49,8 @@ const PRINT_CSS = `
     padding-bottom: 1mm; margin-bottom: 2mm;
     display: inline-block; min-width: 50mm;
   }
-  /* テーブルセクション：残り空間を全て使う */
-  .dp-table-wrap { flex: 1; overflow: hidden; }
+  /* テーブルセクション：グリッドの 1fr で残り高さを全て使う */
+  .dp-table-wrap { overflow: hidden; }
   table { border-collapse: collapse; width: 100%; }
   .dp-table { height: 100%; }
   .dp-table th {
@@ -61,7 +61,7 @@ const PRINT_CSS = `
     padding: 3.5px 4px; font-size: 9pt;
     border: 0.5pt solid #bbb; vertical-align: middle; line-height: 1.4;
   }
-  .dp-empty-row td { height: 6mm; border-color: #ddd; }
+  .dp-empty-row td { border-color: #ddd; }
   .dp-center { text-align: center; }
   .dp-right  { text-align: right; }
   .dp-no     { font-size: 7pt; color: #555; }
