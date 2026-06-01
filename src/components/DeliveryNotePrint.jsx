@@ -171,35 +171,55 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
               {(() => {
                 const rows = n.rows || [];
                 const isNew = Boolean(n.patientName);
-                const B = '0.5pt solid #bbb'; // 患者間の区切り線
-                return rows.map((row, i) => {
-                  const last = i === rows.length - 1;
-                  const bB = last ? B : 'none';
-                  return (
-                    <tr key={i}>
-                      {/* 患者名セル: rowSpan で縦中央 */}
-                      {i === 0 && (
-                        <td rowSpan={rows.length}
-                            style={{ verticalAlign:'middle', borderRight:B, borderBottom:B, padding:'4px' }}>
-                          <div className="dp-no">No.{n.deliveryNo}</div>
-                          {isNew ? n.patientName : row.patientName}
+                const B = '0.5pt solid #bbb';
+                const hasMetal = n.paraGram > 0 || n.miroGram > 0;
+                const totalSpan = rows.length + (hasMetal ? 1 : 0);
+                const metalText = [
+                  n.paraGram > 0 ? `パラ ${n.paraGram}g` : '',
+                  n.miroGram > 0 ? `ミロ ${n.miroGram}g` : '',
+                ].filter(Boolean).join('　');
+
+                return (
+                  <>
+                    {rows.map((row, i) => {
+                      const last = !hasMetal && i === rows.length - 1;
+                      const bB = last ? B : 'none';
+                      return (
+                        <tr key={i}>
+                          {i === 0 && (
+                            <td rowSpan={totalSpan}
+                                style={{ verticalAlign:'middle', borderRight:B, borderBottom:B, padding:'4px' }}>
+                              <div className="dp-no">No.{n.deliveryNo}</div>
+                              {isNew ? n.patientName : row.patientName}
+                            </td>
+                          )}
+                          {i === 0 && (
+                            <td rowSpan={totalSpan}
+                                style={{ textAlign:'center', verticalAlign:'middle', borderRight:B, borderBottom:B }}>
+                              {renderShiki(isNew ? n.shiki : row.shiki)}
+                            </td>
+                          )}
+                          <td style={{ borderBottom:bB, borderRight:B }}>{row.gikobutsuName}</td>
+                          <td style={{ borderBottom:bB, borderRight:B, textAlign:'center' }}>{row.category}</td>
+                          <td style={{ borderBottom:bB, borderRight:B, textAlign:'right' }}>{row.unitPrice ? fmtYen(row.unitPrice) : ''}</td>
+                          <td style={{ borderBottom:bB, borderRight:B, textAlign:'center' }}>{row.quantity}</td>
+                          <td style={{ borderBottom:bB, textAlign:'right' }}>{row.amount ? fmtYen(row.amount) : ''}</td>
+                        </tr>
+                      );
+                    })}
+                    {hasMetal && (
+                      <tr>
+                        <td style={{ borderBottom:B, borderRight:B, textAlign:'right', fontSize:'8pt', color:'#444', padding:'1px 6px', fontStyle:'italic' }}>
+                          {metalText}
                         </td>
-                      )}
-                      {/* 部位セル: rowSpan で縦中央 */}
-                      {i === 0 && (
-                        <td rowSpan={rows.length}
-                            style={{ textAlign:'center', verticalAlign:'middle', borderRight:B, borderBottom:B }}>
-                          {renderShiki(isNew ? n.shiki : row.shiki)}
-                        </td>
-                      )}
-                      <td style={{ borderBottom:bB, borderRight:B }}>{row.gikobutsuName}</td>
-                      <td style={{ borderBottom:bB, borderRight:B, textAlign:'center' }}>{row.category}</td>
-                      <td style={{ borderBottom:bB, borderRight:B, textAlign:'right' }}>{row.unitPrice ? fmtYen(row.unitPrice) : ''}</td>
-                      <td style={{ borderBottom:bB, borderRight:B, textAlign:'center' }}>{row.quantity}</td>
-                      <td style={{ borderBottom:bB, textAlign:'right' }}>{row.amount ? fmtYen(row.amount) : ''}</td>
-                    </tr>
-                  );
-                });
+                        <td style={{ borderBottom:B, borderRight:B }}></td>
+                        <td style={{ borderBottom:B, borderRight:B }}></td>
+                        <td style={{ borderBottom:B, borderRight:B }}></td>
+                        <td style={{ borderBottom:B }}></td>
+                      </tr>
+                    )}
+                  </>
+                );
               })()}
             </tbody>
           );
