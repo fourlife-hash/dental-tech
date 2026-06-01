@@ -9,7 +9,7 @@ const COMPANY = {
 };
 
 const BLUE = '#4A90D9';
-const MIN_ROWS = 4; // 最低限の空白行（グリッドレイアウトで底固定するため少なくてOK）
+const MIN_ROWS = 13; // ページを埋めるのに必要な空白行数
 
 function fmtDate(str) {
   if (!str) return '';
@@ -44,10 +44,11 @@ const PRINT_CSS = `
     padding-bottom: 1mm; margin-bottom: 2mm;
     display: inline-block; min-width: 50mm;
   }
-  /* テーブル高さを固定してフッターが下部に来るようにする */
-  .dp-table-wrap { height: 74mm; overflow: visible; }
+  /* テーブルは自然な高さ・空白行を固定高さで埋める */
+  .dp-table-wrap { }
   table { border-collapse: collapse; width: 100%; }
-  .dp-table { height: 100%; }
+  .dp-table { }
+  .dp-empty-row td { height: 5.5mm; }
   .dp-table th {
     background: #333; color: #fff; padding: 3px 4px;
     font-size: 8.5pt; border: 0.5pt solid #555; text-align: center;
