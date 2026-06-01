@@ -1506,6 +1506,10 @@ app.get('*', (req, res) => {
 
 // ─── 起動 ─────────────────────────────────────────────────────────────────────
 
+// サーバーを即座に起動（DB初期化と並行）
+app.listen(PORT, () => console.log(`APIサーバー起動: http://localhost:${PORT}`));
+
+// DB初期化はバックグラウンドで実行
 initDb()
-  .then(() => app.listen(PORT, () => console.log(`APIサーバー起動: http://localhost:${PORT}`)))
+  .then(() => console.log('DB初期化完了'))
   .catch(err => { console.error('DB初期化エラー:', err); process.exit(1); });
