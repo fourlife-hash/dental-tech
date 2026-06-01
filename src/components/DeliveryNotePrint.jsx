@@ -26,10 +26,10 @@ const PRINT_CSS = `
     font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;
     font-size: 9pt; color: #222; margin: 0; padding: 0;
   }
-  /* グリッドでフッターをページ下部に固定 */
+  /* フレックス + margin-top:auto でフッターをページ下部に固定 */
   .dp-page {
-    display: grid;
-    grid-template-rows: auto auto 1fr auto auto;
+    display: flex;
+    flex-direction: column;
     min-height: 126mm;
   }
   .dp-header {
@@ -49,10 +49,10 @@ const PRINT_CSS = `
     padding-bottom: 1mm; margin-bottom: 2mm;
     display: inline-block; min-width: 50mm;
   }
-  /* テーブルセクション：グリッドの 1fr で残り高さを全て使う */
-  .dp-table-wrap { overflow: hidden; }
+  /* テーブルセクション */
+  .dp-table-wrap { /* flexの自然な高さを使う */ }
   table { border-collapse: collapse; width: 100%; }
-  .dp-table { height: 100%; }
+  /* フッターバーを常にページ下部へ（margin-top:autoで押し下げ） */
   .dp-table th {
     background: #333; color: #fff; padding: 3px 4px;
     font-size: 8.5pt; border: 0.5pt solid #555; text-align: center;
@@ -74,7 +74,7 @@ const PRINT_CSS = `
   .dp-col-qty        { width: 7%;  }
   .dp-col-amount     { width: 12%; }
   /* フッターバー */
-  .dp-total-bar { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+  .dp-total-bar { width: 100%; border-collapse: collapse; margin-top: auto; }
   .dp-bar-label {
     background: #333; color: #fff; padding: 3px 5px;
     font-size: 8.5pt; font-weight: 700; border: 0.5pt solid #555;
