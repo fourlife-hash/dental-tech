@@ -924,7 +924,8 @@ app.get('/api/delivery-notes/:id', async (req, res) => {
 app.post('/api/delivery-notes', async (req, res) => {
   const { clinicId, clinicName, deliveryDate, patientName, shiki,
           rows, paraGram, miroGram,
-          subtotalGiko, subtotalMaterial, tax, total, baseUpSupport, baseUpCount } = req.body;
+          subtotalGiko, subtotalMaterial, tax, total, baseUpSupport, baseUpCount,
+          jobId } = req.body;
   if (!clinicName || !deliveryDate) {
     return res.status(400).json({ error: '必須項目が不足しています' });
   }
@@ -985,6 +986,13 @@ app.post('/api/delivery-notes', async (req, res) => {
     );
     const { rows: saved } = await pool.query('SELECT * FROM delivery_notes WHERE id=$1', [id]);
     await syncMetalStocksForNote(id, deliveryDate, clinicName, paraGram || 0, miroGram || 0);
+    // 対応する指示書の医院名・患者名も更新
+    if (jobId) {
+      await pool.query(
+        'UPDATE jobs SET clinic=$1, patient=$2 WHERE id=$3',
+        [clinicName, patientName || '', jobId]
+      );
+    }
     res.status(201).json(deliveryNoteFromRow(saved[0]));
   } catch (err) {
     console.error(err);
