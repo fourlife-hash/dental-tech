@@ -1300,6 +1300,17 @@ app.post('/api/invoice-history', async (req, res) => {
   }
 });
 
+app.delete('/api/invoice-history/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM invoice_history WHERE id=$1', [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: '見つかりません' });
+    res.status(204).end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DBエラー' });
+  }
+});
+
 // ─── Company Info API ────────────────────────────────────────────────────────
 
 app.get('/api/company-info', async (req, res) => {

@@ -131,6 +131,13 @@ export default function Invoice() {
     }
   }
 
+  // 発行済み一覧：削除
+  async function handleDeleteIssued(row) {
+    if (!confirm(`${row.year}年${row.month}月分の請求書履歴を削除しますか？`)) return;
+    await fetch(`/api/invoice-history/${row.id}`, { method: 'DELETE' });
+    setIssuedList(list => list.filter(r => r.id !== row.id));
+  }
+
   // 発行済み一覧：再印刷
   function handleReprint(row) {
     const notes = Array.isArray(row.notes_snapshot)
@@ -380,10 +387,14 @@ export default function Invoice() {
                   <td style={{ padding: '8px 12px', color: '#666', fontSize: 12 }}>
                     {row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : ''}
                   </td>
-                  <td style={{ padding: '8px 12px' }}>
+                  <td style={{ padding: '8px 12px', display: 'flex', gap: 6 }}>
                     <button onClick={() => handleReprint(row)}
                       style={{ padding: '4px 14px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
                       再印刷
+                    </button>
+                    <button onClick={() => handleDeleteIssued(row)}
+                      style={{ padding: '4px 10px', background: 'none', border: '1px solid #ccc', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#c0392b' }}>
+                      削除
                     </button>
                   </td>
                 </tr>
