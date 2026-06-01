@@ -63,13 +63,13 @@ export default function DeliveryNoteForm({
   const [miroGram, setMiroGram] = useState(
     sourceNote?.miroGram > 0 ? String(sourceNote.miroGram) : ''
   );
-  const [baseUpSupport, setBaseUpSupport] = useState(
-    sourceNote?.baseUpSupport > 0 ? 150 : 0
-  );
+  const [baseUpCount, setBaseUpCount]   = useState(sourceNote?.baseUpCount ?? 0);
+  const [baseUpPrice, setBaseUpPrice]   = useState(150); // 設定から取得
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch('/api/products').then(r => r.json()).then(setProducts);
+    fetch('/api/company-info').then(r => r.json()).then(d => setBaseUpPrice(d.baseUpPrice ?? 150));
     if (clinicId) {
       fetch(`/api/prices/${clinicId}`).then(r => r.json()).then(setPrices);
     }
@@ -95,7 +95,8 @@ export default function DeliveryNoteForm({
     setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
   }
 
-  const baseCalc = calcTotals(items);
+  const baseCalc     = calcTotals(items);
+  const baseUpSupport = baseUpCount * baseUpPrice; // 件数 × 単価（税込）
   // ベースアップ支援料は税込みのため total に直接加算（追加税なし）
   const totals = {
     ...baseCalc,
@@ -122,6 +123,7 @@ export default function DeliveryNoteForm({
         paraGram:         parseFloat(paraGram) || 0,
         miroGram:         parseFloat(miroGram) || 0,
         baseUpSupport,
+        baseUpCount,
         ...totals,
       };
 
@@ -267,14 +269,17 @@ export default function DeliveryNoteForm({
 
         {/* ベースアップ支援料 */}
         <div className="dn-section dn-metal" style={{ marginTop: '0.5rem' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+          <span className="dn-metal-label">ベースアップ支援料：</span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <input
-              type="checkbox"
-              checked={baseUpSupport === 150}
-              onChange={e => setBaseUpSupport(e.target.checked ? 150 : 0)}
-              style={{ width: 16, height: 16 }}
+              type="number"
+              min="0"
+              value={baseUpCount}
+              onChange={e => setBaseUpCount(parseInt(e.target.value) || 0)}
+              className="dn-qty"
+              style={{ width: 52 }}
             />
-            <span>ベースアップ支援料　¥150（税込）</span>
+            <span>件　×　¥{baseUpPrice.toLocaleString()}　=　¥{baseUpSupport.toLocaleString()}（税込）</span>
           </label>
         </div>
 
@@ -289,7 +294,7 @@ export default function DeliveryNoteForm({
           <div className="dn-total-row">
             <span>消費税10%</span><span>¥{baseCalc.tax.toLocaleString()}</span>
           </div>
-          {baseUpSupport > 0 && (
+          {baseUpCount > 0 && (
             <div className="dn-total-row">
               <span>ベースアップ支援料</span><span>¥{baseUpSupport.toLocaleString()}</span>
             </div>
