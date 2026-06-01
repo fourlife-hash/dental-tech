@@ -45,8 +45,8 @@ export default function DeliveryNoteForm({
   // sourceNote: 初期値の取得源（編集モードの既存ノート or 患者一覧から戻った保存済みノート）
   const sourceNote = initialNote || existingNote;
 
-  const patientName = sourceNote?.patientName || job?.patient || '';
-  const clinicName  = sourceNote?.clinicName  || job?.clinic  || '';
+  const [patientName, setPatientName] = useState(sourceNote?.patientName || job?.patient || '');
+  const [clinicName,  setClinicName]  = useState(sourceNote?.clinicName  || job?.clinic  || '');
 
   const [products, setProducts]         = useState([]);
   const [prices, setPrices]             = useState([]);
@@ -156,10 +156,30 @@ export default function DeliveryNoteForm({
         {/* 患者ヘッダー */}
         <div className="dn-patient-header">
           <div className="dn-patient-title">
-            <span className="dn-clinic-label">{clinicName}</span>
-            <span className="dn-patient-label">{patientName}</span>
+            <span className="dn-clinic-label">{clinicName || '（医院名）'}</span>
+            <span className="dn-patient-label">{patientName || '（患者名）'}</span>
           </div>
           <div className="dn-patient-fields">
+            <div className="dn-field-row">
+              <label>医院名</label>
+              <input
+                type="text"
+                value={clinicName}
+                onChange={e => setClinicName(e.target.value)}
+                placeholder="医院名"
+                className="dn-shiki-input"
+              />
+            </div>
+            <div className="dn-field-row">
+              <label>患者名</label>
+              <input
+                type="text"
+                value={patientName}
+                onChange={e => setPatientName(e.target.value)}
+                placeholder="患者名"
+                className="dn-shiki-input"
+              />
+            </div>
             <div className="dn-field-row">
               <label>歯式</label>
               <input
