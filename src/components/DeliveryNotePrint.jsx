@@ -120,7 +120,7 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
   // 部位セルの描画（十字図 or プレーンテキスト）
   function renderShiki(shiki) {
     if (!shiki) return '';
-    if (parseCross(shiki)) return <CrossDiagram shiki={shiki} cellSize={13} fontSize="8pt" borderColor="#666" />;
+    if (parseCross(shiki)) return <CrossDiagram shiki={shiki} cellSize={18} fontSize="9pt" borderColor="#333" />;
     return shiki;
   }
 
