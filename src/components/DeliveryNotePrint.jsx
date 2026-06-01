@@ -45,7 +45,7 @@ const PRINT_CSS = `
     display: inline-block; min-width: 50mm;
   }
   /* テーブル高さを固定してフッターが下部に来るようにする */
-  .dp-table-wrap { height: 74mm; overflow: hidden; }
+  .dp-table-wrap { height: 74mm; overflow: visible; }
   table { border-collapse: collapse; width: 100%; }
   .dp-table { height: 100%; }
   .dp-table th {
