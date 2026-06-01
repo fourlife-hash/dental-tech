@@ -16,8 +16,10 @@ function buildShiki(stateMap) {
   }
   const byQuad = {};
   for (let q = 0; q < 4; q++) {
+    // 右側(q=0,2)は降順（8→1：正中から遠い順）、左側(q=1,3)は昇順（1→8：正中から近い順）
+    const isRight = q === 0 || q === 2;
     byQuad[q] = quadNums[q]
-      .sort((a, b) => a.n - b.n)
+      .sort((a, b) => isRight ? b.n - a.n : a.n - b.n)
       .map(({ n, state }) => state === 1 ? CIRCLED[n - 1] : FULLWIDE[n - 1])
       .join('');
   }
