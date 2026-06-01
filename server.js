@@ -576,6 +576,9 @@ async function initDb() {
     )
   `);
   await pool.query(`
+    ALTER TABLE company_info ADD COLUMN IF NOT EXISTS base_up_price INTEGER DEFAULT 150
+  `);
+  await pool.query(`
     INSERT INTO company_info (id, bank_info) VALUES (1, '')
     ON CONFLICT (id) DO NOTHING
   `);
@@ -602,6 +605,9 @@ async function initDb() {
 
   await pool.query(`
     ALTER TABLE delivery_notes ADD COLUMN IF NOT EXISTS base_up_support INTEGER NOT NULL DEFAULT 0
+  `);
+  await pool.query(`
+    ALTER TABLE delivery_notes ADD COLUMN IF NOT EXISTS base_up_count INTEGER NOT NULL DEFAULT 0
   `);
 
   await pool.query(`
@@ -702,6 +708,7 @@ function deliveryNoteFromRow(r) {
     tax:              parseInt(r.tax)               || 0,
     total:            parseInt(r.total)             || 0,
     baseUpSupport:    parseInt(r.base_up_support)   || 0,
+    baseUpCount:      parseInt(r.base_up_count)     || 0,
     createdAt:        r.created_at,
   };
 }
@@ -916,7 +923,7 @@ app.get('/api/delivery-notes/:id', async (req, res) => {
 app.post('/api/delivery-notes', async (req, res) => {
   const { clinicId, clinicName, deliveryDate, patientName, shiki,
           rows, paraGram, miroGram,
-          subtotalGiko, subtotalMaterial, tax, total, baseUpSupport } = req.body;
+          subtotalGiko, subtotalMaterial, tax, total, baseUpSupport, baseUpCount } = req.body;
   if (!clinicName || !deliveryDate) {
     return res.status(400).json({ error: '必須項目が不足しています' });
   }
@@ -934,14 +941,14 @@ app.post('/api/delivery-notes', async (req, res) => {
              clinic_id=$1, shiki=$2,
              rows=$3, para_gram=$4, miro_gram=$5,
              subtotal_giko=$6, subtotal_material=$7, tax=$8, total=$9,
-             base_up_support=$10
-           WHERE id=$11 RETURNING *`,
+             base_up_support=$10, base_up_count=$11
+           WHERE id=$12 RETURNING *`,
           [
             clinicId || null, shiki || '',
             JSON.stringify(rows || []),
             paraGram || 0, miroGram || 0,
             subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
-            baseUpSupport || 0,
+            baseUpSupport || 0, baseUpCount || 0,
             dupId,
           ]
         );
@@ -963,15 +970,15 @@ app.post('/api/delivery-notes', async (req, res) => {
          (id, delivery_no, clinic_id, clinic_name, delivery_date,
           patient_name, shiki,
           rows, para_gram, miro_gram, subtotal_giko, subtotal_material, tax, total,
-          base_up_support, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+          base_up_support, base_up_count, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
       [
         id, deliveryNo, clinicId || null, clinicName, deliveryDate,
         patientName || '', shiki || '',
         JSON.stringify(rows || []),
         paraGram || 0, miroGram || 0,
         subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
-        baseUpSupport || 0,
+        baseUpSupport || 0, baseUpCount || 0,
         createdAt,
       ]
     );
@@ -988,7 +995,7 @@ app.put('/api/delivery-notes/:id', async (req, res) => {
   const { id } = req.params;
   const { clinicId, clinicName, deliveryDate, patientName, shiki,
           rows, paraGram, miroGram,
-          subtotalGiko, subtotalMaterial, tax, total, baseUpSupport } = req.body;
+          subtotalGiko, subtotalMaterial, tax, total, baseUpSupport, baseUpCount } = req.body;
   if (!clinicName || !deliveryDate) {
     return res.status(400).json({ error: '必須項目が不足しています' });
   }
@@ -999,15 +1006,15 @@ app.put('/api/delivery-notes/:id', async (req, res) => {
          patient_name=$4, shiki=$5,
          rows=$6, para_gram=$7, miro_gram=$8,
          subtotal_giko=$9, subtotal_material=$10, tax=$11, total=$12,
-         base_up_support=$13
-       WHERE id=$14 RETURNING *`,
+         base_up_support=$13, base_up_count=$14
+       WHERE id=$15 RETURNING *`,
       [
         clinicId || null, clinicName, deliveryDate,
         patientName || '', shiki || '',
         JSON.stringify(rows || []),
         paraGram || 0, miroGram || 0,
         subtotalGiko || 0, subtotalMaterial || 0, tax || 0, total || 0,
-        baseUpSupport || 0,
+        baseUpSupport || 0, baseUpCount || 0,
         id,
       ]
     );
@@ -1305,7 +1312,8 @@ app.post('/api/invoice-history', async (req, res) => {
 app.get('/api/company-info', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM company_info WHERE id=1');
-    res.json(rows[0] || { id: 1, bank_info: '' });
+    const r = rows[0] || { id: 1, bank_info: '', base_up_price: 150 };
+    res.json({ ...r, baseUpPrice: r.base_up_price ?? 150 });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DBエラー' });
@@ -1314,12 +1322,13 @@ app.get('/api/company-info', async (req, res) => {
 
 app.put('/api/company-info', async (req, res) => {
   try {
-    const { bankInfo } = req.body;
+    const { bankInfo, baseUpPrice } = req.body;
     const { rows } = await pool.query(
-      `UPDATE company_info SET bank_info=$1, updated_at=NOW() WHERE id=1 RETURNING *`,
-      [bankInfo ?? '']
+      `UPDATE company_info SET bank_info=$1, base_up_price=$2, updated_at=NOW() WHERE id=1 RETURNING *`,
+      [bankInfo ?? '', baseUpPrice ?? 150]
     );
-    res.json(rows[0]);
+    const r = rows[0];
+    res.json({ ...r, baseUpPrice: r.base_up_price ?? 150 });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DBエラー' });

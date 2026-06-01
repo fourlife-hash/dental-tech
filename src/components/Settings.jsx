@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 
 export default function Settings() {
-  const [bankInfo, setBankInfo] = useState('');
-  const [saving, setSaving]     = useState(false);
-  const [msg, setMsg]           = useState('');
+  const [bankInfo, setBankInfo]       = useState('');
+  const [baseUpPrice, setBaseUpPrice] = useState(150);
+  const [saving, setSaving]           = useState(false);
+  const [msg, setMsg]                 = useState('');
 
   useEffect(() => {
     fetch('/api/company-info')
       .then(r => r.json())
-      .then(d => setBankInfo(d.bank_info || ''));
+      .then(d => {
+        setBankInfo(d.bank_info || '');
+        setBaseUpPrice(d.baseUpPrice ?? 150);
+      });
   }, []);
 
   async function handleSave(e) {
@@ -19,7 +23,7 @@ export default function Settings() {
       const res = await fetch('/api/company-info', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bankInfo }),
+        body: JSON.stringify({ bankInfo, baseUpPrice: parseInt(baseUpPrice) || 150 }),
       });
       if (!res.ok) throw new Error('保存失敗');
       setMsg('保存しました');
@@ -36,6 +40,23 @@ export default function Settings() {
       <h2 style={{ color: '#1a3a5c', marginBottom: '1.5rem', fontSize: 20 }}>設定</h2>
 
       <form onSubmit={handleSave}>
+        <div style={{ background: '#fafafa', borderRadius: 10, padding: '1.25rem', marginBottom: '1rem' }}>
+          <label style={{ display: 'block', fontWeight: 'bold', fontSize: 14, marginBottom: 8, color: '#333' }}>
+            ベースアップ支援料（1件あたり・税込）
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>¥</span>
+            <input
+              type="number"
+              min="0"
+              value={baseUpPrice}
+              onChange={e => setBaseUpPrice(e.target.value)}
+              style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #ccc', width: 100, fontSize: 14 }}
+            />
+            <span style={{ fontSize: 12, color: '#888' }}>（現在：¥150 → 2026年6月から¥300予定）</span>
+          </div>
+        </div>
+
         <div style={{ background: '#fafafa', borderRadius: 10, padding: '1.25rem', marginBottom: '1rem' }}>
           <label style={{ display: 'block', fontWeight: 'bold', fontSize: 14, marginBottom: 4, color: '#333' }}>
             弊社銀行口座
