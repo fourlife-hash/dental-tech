@@ -30,8 +30,10 @@ const PRINT_CSS = `
     width: 100%;
     display: flex;
     flex-direction: column;
-    min-height: 124mm;
+    min-height: 122mm;
   }
+  /* テーブル領域が残り空間を全て吸収→フッターが自然に下部へ */
+  .dp-table-wrap { flex: 1 1 auto; }
   .dp-header {
     display: flex; justify-content: space-between; align-items: flex-start;
     margin-bottom: 1.5mm;
@@ -70,8 +72,8 @@ const PRINT_CSS = `
   .dp-col-price      { width: 12%; }
   .dp-col-qty        { width: 7%;  }
   .dp-col-amount     { width: 12%; }
-  /* フッター領域：margin-top:auto で常にページ下部へ */
-  .dp-bottom { margin-top: auto; padding-top: 3mm; }
+  /* フッター領域 */
+  .dp-bottom { padding-top: 3mm; }
   .dp-total-bar { width: 100%; border-collapse: collapse; }
   .dp-bar-label {
     background: #333; color: #fff; padding: 3px 5px;
