@@ -300,6 +300,23 @@ export default function MetalStock() {
         </table>
       </div>
 
+      {/* ─── 金属使用量 再計算 ─── */}
+      <div style={{ background: '#fff8e1', border: '1px solid #ffc107', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ fontSize: 13, color: '#555' }}>
+          納品書の金属使用量が正しく反映されていない場合は再計算してください
+        </div>
+        <button
+          onClick={async () => {
+            const res = await fetch('/api/recalculate-metals', { method: 'POST' });
+            const d = await res.json();
+            alert(d.message || d.error);
+            await load();
+          }}
+          style={{ padding: '6px 16px', background: '#e65100', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 13 }}>
+          金属使用量を再計算
+        </button>
+      </div>
+
       {/* ─── 金属種類マスタ ─── */}
       <div style={{ background: '#fafafa', borderRadius: 10, padding: '1rem' }}>
         <h3 style={{ margin: '0 0 0.75rem', fontSize: 15 }}>金属種類マスタ</h3>
