@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createDeliveryNote, updateDeliveryNote } from '../api.js';
+import ToothSelector from './ToothSelector.jsx';
 
 const CAT_MAP = { '保険技工': '保', '自費技工': '自', '材料': '材', '預かり': '預' };
 const CAT_OPTIONS = ['保', '自', '材', '預'];
@@ -180,15 +181,9 @@ export default function DeliveryNoteForm({
                 className="dn-shiki-input"
               />
             </div>
-            <div className="dn-field-row">
-              <label>歯式</label>
-              <input
-                type="text"
-                value={shiki}
-                onChange={e => setShiki(e.target.value)}
-                placeholder="例: |7"
-                className="dn-shiki-input"
-              />
+            <div className="dn-field-row" style={{ alignItems: 'flex-start' }}>
+              <label style={{ paddingTop: 4 }}>歯式</label>
+              <ToothSelector value={shiki} onChange={setShiki} />
             </div>
             <div className="dn-field-row">
               <label>納品日</label>

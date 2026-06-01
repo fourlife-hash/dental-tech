@@ -721,11 +721,11 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
   margin-bottom: 2.5mm;
 }
 .dp-table th {
-  background: #1e3a5f;
+  background: #4A90D9;
   color: #fff;
   padding: 1.2mm 2mm;
   font-weight: 700;
-  border: 0.5pt solid #6b7280;
+  border: 0.5pt solid #5fa0e0;
   text-align: center;
 }
 .dp-table td {
@@ -786,6 +786,40 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
   margin-top: 0.5mm;
 }
 .dp-grand span { font-size: 10pt !important; font-weight: 700 !important; }
+
+/* ── 横フッターバー（PDF見本準拠） ── */
+.dp-total-bar {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2mm;
+  font-size: 8.5pt;
+}
+.dp-bar-label {
+  background: #4A90D9;
+  color: #fff;
+  font-weight: 700;
+  padding: 1.5mm 3mm;
+  border: 0.5pt solid #5fa0e0;
+  text-align: center;
+  white-space: nowrap;
+}
+.dp-bar-value {
+  text-align: right;
+  padding: 1.5mm 3mm;
+  border: 0.5pt solid #b0c8e0;
+  min-width: 18mm;
+}
+.dp-bar-total {
+  font-weight: 700;
+  font-size: 9.5pt;
+}
+
+/* 金属残量テキスト（シンプル） */
+.dp-metal-text {
+  font-size: 8pt;
+  margin-top: 1.5mm;
+  color: #333;
+}
 
 /* ─── @media print（納品書専用: A5横・グレースケール固定） ─── */
 @media print {
@@ -972,8 +1006,8 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
   font-size: 22pt !important;
   font-weight: 700 !important;
   letter-spacing: 0.25em;
-  color: #1e3a5f !important;
-  border-bottom: 2.5pt solid #1e3a5f;
+  color: #4A90D9 !important;
+  border-bottom: 2.5pt solid #4A90D9;
   padding-bottom: 1.5mm;
   line-height: 1.2;
 }
@@ -1071,8 +1105,9 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
   }
 
   /* グレースケール：ヘッダー背景を黒に */
-  .dp-table thead th {
-    background: #222 !important;
+  .dp-table thead th,
+  .dp-bar-label {
+    background: #333 !important;
     color: #fff !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

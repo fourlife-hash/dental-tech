@@ -157,44 +157,36 @@ export default function DeliveryNotePrint({ note, notes, metalBalance, onClose }
           )}
         </table>
 
-        {/* ── フッター（全患者合計） ── */}
-        <div className="dp-footer">
-          <div className="dp-metal">
-            {(totals.paraGram > 0 || totals.miroGram > 0) && (
-              <div className="dp-metal-row">
-                <span className="dp-metal-label">使用した金属</span>
-                {totals.paraGram > 0 && <span>パラ {totals.paraGram}g</span>}
-                {totals.miroGram > 0 && <span>ミロ {totals.miroGram}g</span>}
-              </div>
-            )}
-            {metalBalance && (
-              <div className="dp-metal-row">
-                <span className="dp-metal-label">金属残量</span>
-                <span>パラ {metalBalance.para.toFixed(2)}g</span>
-                <span>ミロ {metalBalance.miro.toFixed(2)}g</span>
-              </div>
-            )}
-          </div>
-          <div className="dp-totals">
-            <div className="dp-total-row">
-              <span>技工合計</span><span>{fmtYen(totals.subtotalGiko)}</span>
-            </div>
-            <div className="dp-total-row">
-              <span>材料合計</span><span>{fmtYen(totals.subtotalMaterial)}</span>
-            </div>
-            <div className="dp-total-row">
-              <span>消費税10%</span><span>{fmtYen(totals.tax)}</span>
-            </div>
-            {totals.baseUpSupport > 0 && (
-              <div className="dp-total-row">
-                <span>ベースアップ支援料</span><span>{fmtYen(totals.baseUpSupport)}</span>
-              </div>
-            )}
-            <div className="dp-total-row dp-grand">
-              <span>合計金額</span><span>{fmtYen(totals.total)}</span>
-            </div>
-          </div>
-        </div>
+        {/* ── フッター：横バー（PDF見本準拠） ── */}
+        <table className="dp-total-bar">
+          <tbody>
+            <tr>
+              <td className="dp-bar-label">技工</td>
+              <td className="dp-bar-value">{(totals.subtotalGiko || 0).toLocaleString()}</td>
+              <td className="dp-bar-label">材料</td>
+              <td className="dp-bar-value">{(totals.subtotalMaterial || 0).toLocaleString()}</td>
+              <td className="dp-bar-label">消費税</td>
+              <td className="dp-bar-value">{(totals.tax || 0).toLocaleString()}</td>
+              {totals.baseUpSupport > 0 && <>
+                <td className="dp-bar-label">ﾍﾞｰｽｱｯﾌﾟ</td>
+                <td className="dp-bar-value">{totals.baseUpSupport.toLocaleString()}</td>
+              </>}
+              <td className="dp-bar-label">合計納品額</td>
+              <td className="dp-bar-value dp-bar-total">{fmtYen(totals.total)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* ── 金属残量（シンプルテキスト・PDF見本準拠） ── */}
+        {metalBalance && (() => {
+          const now = new Date();
+          const dateStr = `${now.getMonth()+1}月${now.getDate()}日`;
+          const parts = [];
+          if (metalBalance.para > 0) parts.push(`パラ 残${metalBalance.para.toFixed(1)}g`);
+          if (metalBalance.miro > 0) parts.push(`ミロ 残${metalBalance.miro.toFixed(1)}g`);
+          if (parts.length === 0) return null;
+          return <div className="dp-metal-text">{parts.join('　')}　{dateStr}現在</div>;
+        })()}
 
       </div>
     </div>
