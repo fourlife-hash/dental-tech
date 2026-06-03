@@ -1029,6 +1029,9 @@ app.put('/api/delivery-notes/:id', async (req, res) => {
     );
     if (result.rowCount === 0) return res.status(404).json({ error: '納品書が見つかりません' });
     await syncMetalStocksForNote(id, deliveryDate, clinicName, paraGram || 0, miroGram || 0);
+    if (jobId) {
+      await pool.query('UPDATE jobs SET clinic=$1, patient=$2 WHERE id=$3', [clinicName, patientName || '', jobId]);
+    }
     res.json(deliveryNoteFromRow(result.rows[0]));
   } catch (err) {
     console.error(err);

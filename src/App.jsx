@@ -176,7 +176,7 @@ export default function App() {
         </div>
       ) : activeTab === 'delivery' ? (
         <div className="dn-page">
-          <DeliveryNote />
+          <DeliveryNote onJobUpdated={loadJobs} />
         </div>
       ) : activeTab === 'metal' ? (
         <div className="dn-page">

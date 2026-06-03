@@ -67,7 +67,7 @@ function CalendarPicker({ onSelect, selectedDate }) {
   );
 }
 
-export default function DeliveryNote() {
+export default function DeliveryNote({ onJobUpdated }) {
   const [subTab, setSubTab]           = useState('new');
   const [screen, setScreen]           = useState('date');
   const [selectedDate, setSelectedDate] = useState('');
@@ -176,6 +176,8 @@ export default function DeliveryNote() {
   }
 
   async function handleFormSaved() {
+    // 指示書タブのジョブ一覧も更新
+    onJobUpdated?.();
     if (formData?.fromList) {
       loadNotes();
       setSubTab('list');
