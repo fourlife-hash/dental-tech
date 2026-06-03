@@ -5,6 +5,12 @@ const BORDER = '1px solid #b8dba0';
 
 function fmt(n)   { return (n ?? 0).toLocaleString(); }
 function fmt0(n)  { return n ? (n).toLocaleString() : ''; }  // 0は空白
+// Q:形式の歯式を読みやすい文字列に変換（請求書用）
+function shikiToText(shiki) {
+  if (!shiki) return '';
+  if (shiki.startsWith('Q:')) return shiki.slice(2).split(',').join('').replace(/\s/g, '') || '';
+  return shiki;
+}
 function fmtDate(str) {
   if (!str) return '';
   const d = new Date(str + 'T00:00:00');
@@ -50,7 +56,8 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
 
   if (!invoiceData) return null;
   const { clinic, year, month, notes, totalGiko, totalMaterial, totalTax, totalAmount } = invoiceData;
-  const baseUp     = totalBaseUp ?? invoiceData.totalBaseUp ?? 0;
+  const baseUp          = totalBaseUp ?? invoiceData.totalBaseUp ?? 0;
+  const totalBaseUpCount = notes.reduce((s, n) => s + (n.baseUpCount || 0), 0);
   const showBaseUp = true; // 常に表示（0円でも記載）
   const grandTotal = totalAmount + carryOver;
 
@@ -151,7 +158,7 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
       </div>
       {showBaseUp && (
         <div style={{ fontSize: 11, color: '#333', marginBottom: 14 }}>
-          ベースアップ支援料合計　¥{fmt(baseUp)}
+          ベースアップ支援料　{totalBaseUpCount}個　¥{fmt(baseUp)}
         </div>
       )}
 
@@ -172,7 +179,7 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
           {notes.map(n => (
             <tr key={n.id}>
               <td style={TD({ textAlign: 'center' })}>{n.deliveryNo}</td>
-              <td style={TD({ textAlign: 'center' })}>{n.shiki || ''}</td>
+              <td style={TD({ textAlign: 'center' })}>{shikiToText(n.shiki)}</td>
               <td style={TD()}>{n.patientName}</td>
               <td style={TD({ textAlign: 'center' })}>{fmtDate(n.deliveryDate)}</td>
               <td style={TD({ textAlign: 'right' })}>{fmt0(n.subtotalGiko)}</td>
