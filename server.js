@@ -854,8 +854,8 @@ app.post('/api/products', async (req, res) => {
     const { name, category } = req.body;
     if (!name || !category) return res.status(400).json({ error: '必須項目が不足しています' });
     const id = uuidv4();
-    const { rows: maxRow } = await pool.query("SELECT COALESCE(MAX(code::integer),0)+1 AS next FROM products WHERE code ~ '^[0-9]+$'");
-    const code = String(maxRow[0].next).padStart(4, '0');
+    const { rows: maxRow } = await pool.query("SELECT COUNT(*)::int AS cnt FROM products");
+    const code = 'u' + String(maxRow[0].cnt + 1).padStart(4, '0');
     await pool.query('INSERT INTO products (id, code, name, category) VALUES ($1,$2,$3,$4)', [id, code, name, category]);
     res.status(201).json({ id, code, name, category });
   } catch (err) { console.error(err); res.status(500).json({ error: 'DBエラー' }); }
