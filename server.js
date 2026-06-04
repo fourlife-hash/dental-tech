@@ -624,22 +624,20 @@ async function initDb() {
   // 医院名の表記揺れを修正（既存DBデータ対応）
   await pool.query("UPDATE jobs SET clinic = 'クロイ歯科医院' WHERE clinic = 'クロイD・C'");
 
-  // 製品・料金表を常に最新シードデータで同期（差し替え）
-  await pool.query('DELETE FROM prices');
-  await pool.query('DELETE FROM products');
+  // 製品・料金表を初回のみ投入（既存データは保持）
   for (const p of SEED_PRODUCTS) {
     await pool.query(
-      'INSERT INTO products (id, code, name, category) VALUES ($1,$2,$3,$4)',
+      'INSERT INTO products (id, code, name, category) VALUES ($1,$2,$3,$4) ON CONFLICT (id) DO NOTHING',
       [p.id, p.code, p.name, p.category]
     );
   }
   for (const pr of SEED_PRICES) {
     await pool.query(
-      'INSERT INTO prices (clinic_id, product_id, price) VALUES ($1,$2,$3)',
+      'INSERT INTO prices (clinic_id, product_id, price) VALUES ($1,$2,$3) ON CONFLICT (clinic_id, product_id) DO NOTHING',
       [pr.clinicId, pr.productId, pr.price]
     );
   }
-  console.log(`製品・料金表を更新しました（製品${SEED_PRODUCTS.length}件 / 料金${SEED_PRICES.length}件）`);
+  console.log(`製品・料金表を初期化しました（製品${SEED_PRODUCTS.length}件 / 料金${SEED_PRICES.length}件）`);
 
   // 初回のみシード（clinicsが空なら clinics・jobs に初期データを投入）
   const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM clinics');
@@ -849,6 +847,39 @@ app.get('/api/products', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'DBエラー' });
   }
+});
+
+app.post('/api/products', async (req, res) => {
+  try {
+    const { name, category } = req.body;
+    if (!name || !category) return res.status(400).json({ error: '必須項目が不足しています' });
+    const id = uuidv4();
+    const { rows: maxRow } = await pool.query("SELECT COALESCE(MAX(code::integer),0)+1 AS next FROM products WHERE code ~ '^[0-9]+$'");
+    const code = String(maxRow[0].next).padStart(4, '0');
+    await pool.query('INSERT INTO products (id, code, name, category) VALUES ($1,$2,$3,$4)', [id, code, name, category]);
+    res.status(201).json({ id, code, name, category });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'DBエラー' }); }
+});
+
+app.put('/api/products/:id', async (req, res) => {
+  try {
+    const { name, category } = req.body;
+    const { rows } = await pool.query(
+      'UPDATE products SET name=$1, category=$2 WHERE id=$3 RETURNING *',
+      [name, category, req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: '製品が見つかりません' });
+    res.json(productFromRow(rows[0]));
+  } catch (err) { console.error(err); res.status(500).json({ error: 'DBエラー' }); }
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM prices WHERE product_id=$1', [req.params.id]);
+    const result = await pool.query('DELETE FROM products WHERE id=$1', [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: '製品が見つかりません' });
+    res.status(204).end();
+  } catch (err) { console.error(err); res.status(500).json({ error: 'DBエラー' }); }
 });
 
 // ─── Prices API ──────────────────────────────────────────────────────────────
