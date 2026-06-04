@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 
 const CAT_OPTIONS = ['保', '自', '材', '預'];
 const CAT_LABELS  = { '保':'保険', '自':'自費', '材':'材料', '預':'預かり' };
+
+// カテゴリを短い形式に正規化（既存シードと新規追加の両方に対応）
+function normCat(cat) {
+  if (!cat) return '';
+  if (cat === '保険技工' || cat === '保') return '保';
+  if (cat === '自費技工' || cat === '自') return '自';
+  if (cat === '材料'     || cat === '材') return '材';
+  if (cat === '預かり'   || cat === '預') return '預';
+  return cat;
+}
 const BLUE = '#1a3a5c';
 
 export default function Settings() {
@@ -173,10 +183,12 @@ export default function Settings() {
                 <tr key={p.id} style={{ borderBottom: '1px solid #eee' }}>
                   <td style={{ padding: '6px 10px' }}>{p.name}</td>
                   <td style={{ padding: '6px 10px', textAlign: 'center' }}>
-                    <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 12,
-                      background: p.category === '保' ? '#e3f2fd' : p.category === '自' ? '#f3e5f5' : p.category === '材' ? '#e8f5e9' : '#fff8e1',
-                      color: p.category === '保' ? '#1565c0' : p.category === '自' ? '#6a1b9a' : p.category === '材' ? '#2e7d32' : '#f57f17'
-                    }}>{p.category}</span>
+                    {(() => {
+                      const c = normCat(p.category);
+                      const bg = c === '保' ? '#e3f2fd' : c === '自' ? '#f3e5f5' : c === '材' ? '#e8f5e9' : c === '預' ? '#fff8e1' : '#f5f5f5';
+                      const cl = c === '保' ? '#1565c0' : c === '自' ? '#6a1b9a' : c === '材' ? '#2e7d32' : c === '預' ? '#f57f17' : '#999';
+                      return <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 12, background: bg, color: cl }}>{c || '未設定'}</span>;
+                    })()}
                   </td>
                   <td style={{ padding: '6px 10px', textAlign: 'right' }}>
                     <input type="number" min="0" step="10"
