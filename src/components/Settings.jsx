@@ -76,16 +76,19 @@ export default function Settings() {
   async function handleAddProduct(e) {
     e.preventDefault();
     if (!newProduct.name) return;
-    const res = await fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newProduct),
-    });
-    if (res.ok) {
-      const p = await res.json();
-      setProducts(prev => [...prev, p]);
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProduct),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert('エラー: ' + (data.error || res.status)); return; }
+      setProducts(prev => [...prev, data]);
       setNewProduct({ name: '', category: '保' });
       setAddingProduct(false);
+    } catch (err) {
+      alert('エラー: ' + err.message);
     }
   }
 
