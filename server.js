@@ -1234,7 +1234,11 @@ app.get('/api/invoices', async (req, res) => {
     const prevY = m === 1 ? y - 1 : y;
     const prevM = m === 1 ? 12 : m - 1;
     const dateFrom = `${prevY}-${pad(prevM)}-21`;
-    const dateTo   = `${y}-${pad(m)}-20`;
+    // monthEnd=true の場合は月末締め（当月末日まで）
+    const lastDay = new Date(y, m, 0).getDate(); // 当月末日
+    const dateTo   = req.query.monthEnd === 'true'
+      ? `${y}-${pad(m)}-${pad(lastDay)}`
+      : `${y}-${pad(m)}-20`;
 
     // 医院情報取得
     const clinicRes = await pool.query('SELECT * FROM clinics WHERE id=$1', [clinicId]);

@@ -12,6 +12,7 @@ export default function Invoice() {
   const [error, setError]             = useState('');
 
   // 前月履歴・自動計算
+  const [monthEnd, setMonthEnd]             = useState(false); // 月末締め
   const [isFirstTime, setIsFirstTime]       = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [prevCharge,  setPrevCharge]        = useState('');
@@ -82,7 +83,9 @@ export default function Invoice() {
     setError('');
     setReprintData(null);
     try {
-      const res = await fetch(`/api/invoices?clinicId=${clinicId}&year=${year}&month=${month}`);
+      const params = new URLSearchParams({ clinicId, year, month });
+      if (monthEnd) params.set('monthEnd', 'true');
+      const res = await fetch(`/api/invoices?${params}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const data = await res.json();
       setInvoiceData(data);
@@ -210,6 +213,11 @@ export default function Invoice() {
               <select value={month} onChange={e => setMonth(parseInt(e.target.value))} style={inputSt}>
                 {months.map(m => <option key={m} value={m}>{m}月</option>)}
               </select>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', alignSelf: 'flex-end', paddingBottom: 4 }}>
+              <input type="checkbox" checked={monthEnd} onChange={e => setMonthEnd(e.target.checked)}
+                style={{ width: 16, height: 16 }} />
+              月末締め（月末まで集計）
             </label>
           </div>
 
