@@ -8,6 +8,7 @@ import DeliveryNote from './components/DeliveryNote.jsx';
 import MetalStock from './components/MetalStock.jsx';
 import Invoice from './components/Invoice.jsx';
 import Settings from './components/Settings.jsx';
+import SalesReport from './components/SalesReport.jsx';
 import { fetchJobs, createJob, patchDone, removeJob, updateJob } from './api.js';
 
 function localStr(d) {
@@ -27,7 +28,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [editingJob, setEditingJob]     = useState(null);
-  const [activeTab, setActiveTab]       = useState('jobs'); // 'jobs' | 'delivery' | 'metal' | 'invoice' | 'settings'
+  const [activeTab, setActiveTab]       = useState('jobs'); // 'jobs' | 'delivery' | 'metal' | 'invoice' | 'settings' | 'sales'
   const [restoreMsg, setRestoreMsg]     = useState('');
 
   const loadJobs = useCallback(async () => {
@@ -101,6 +102,10 @@ export default function App() {
             className={`main-nav-btn${activeTab === 'settings' ? ' active' : ''}`}
             onClick={() => setActiveTab('settings')}
           >設定</button>
+          <button
+            className={`main-nav-btn${activeTab === 'sales' ? ' active' : ''}`}
+            onClick={() => setActiveTab('sales')}
+          >売上</button>
         </nav>
         <span className="header-sub">全{jobs.length}件 / 済{jobs.filter(j=>j.done).length}件</span>
         <a
@@ -186,9 +191,13 @@ export default function App() {
         <div className="dn-page">
           <Invoice />
         </div>
-      ) : (
+      ) : activeTab === 'settings' ? (
         <div className="dn-page">
           <Settings />
+        </div>
+      ) : (
+        <div className="dn-page">
+          <SalesReport />
         </div>
       )}
 

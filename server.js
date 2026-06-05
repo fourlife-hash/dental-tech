@@ -915,6 +915,57 @@ app.post('/api/prices', async (req, res) => {
   }
 });
 
+// ─── 検索 API ────────────────────────────────────────────────────────────────
+
+app.get('/api/delivery-notes/search', async (req, res) => {
+  try {
+    const q = `%${req.query.q || ''}%`;
+    const { rows } = await pool.query(
+      `SELECT * FROM (
+         SELECT DISTINCT ON (clinic_name, delivery_date, COALESCE(NULLIF(patient_name,''),id)) *
+         FROM delivery_notes
+         ORDER BY clinic_name, delivery_date, COALESCE(NULLIF(patient_name,''),id), created_at DESC
+       ) d
+       WHERE patient_name ILIKE $1 OR clinic_name ILIKE $1
+       ORDER BY delivery_date DESC, delivery_no DESC`,
+      [q]
+    );
+    res.json(rows.map(deliveryNoteFromRow));
+  } catch (err) { console.error(err); res.status(500).json({ error: 'DBエラー' }); }
+});
+
+// ─── 年間売上 API ─────────────────────────────────────────────────────────────
+
+app.get('/api/sales/annual', async (req, res) => {
+  try {
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const { rows } = await pool.query(
+      `SELECT clinic_name,
+              EXTRACT(MONTH FROM delivery_date::date)::int AS month,
+              SUM(total)::int AS total
+       FROM delivery_notes
+       WHERE EXTRACT(YEAR FROM delivery_date::date) = $1
+       GROUP BY clinic_name, month
+       ORDER BY clinic_name, month`,
+      [year]
+    );
+    // 医院一覧
+    const clinicNames = [...new Set(rows.map(r => r.clinic_name))].sort();
+    const clinics = clinicNames.map(name => {
+      const months = Array.from({ length: 12 }, (_, i) => {
+        const row = rows.find(r => r.clinic_name === name && r.month === i + 1);
+        return row ? row.total : 0;
+      });
+      return { name, months, total: months.reduce((s, v) => s + v, 0) };
+    });
+    const monthlyTotals = Array.from({ length: 12 }, (_, i) =>
+      clinics.reduce((s, c) => s + c.months[i], 0)
+    );
+    const grandTotal = monthlyTotals.reduce((s, v) => s + v, 0);
+    res.json({ year, clinics, monthlyTotals, grandTotal });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'DBエラー' }); }
+});
+
 // ─── Delivery Notes API ──────────────────────────────────────────────────────
 
 app.get('/api/delivery-notes', async (req, res) => {
