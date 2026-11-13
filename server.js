@@ -743,13 +743,17 @@ app.get('/api/jobs', async (req, res) => {
 
     const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
     const { rows } = await pool.query(
-      `SELECT DISTINCT ON (TRIM(clinic), TRIM(patient), set_date, set_time) *
-       FROM jobs${where}
-       ORDER BY TRIM(clinic), TRIM(patient), set_date, set_time, created_at DESC`,
+      `SELECT * FROM jobs${where} ORDER BY created_at DESC`,
       params
     );
-    rows.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
-    res.json(rows.map(jobFromRow));
+    const seen = new Set();
+    const uniqueRows = rows.filter(r => {
+      const key = `${(r.clinic || '').trim()}|${(r.patient || '').trim()}|${r.set_date}|${r.set_time}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    res.json(uniqueRows.map(jobFromRow));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DBエラー' });
