@@ -27,7 +27,7 @@ export default function AddJobForm({ onAdd }) {
       setPaste(text);
       msg('クリップボードから読み込みました');
     } catch {
-      msg('クリップボードの読み取りに失敗しました（HTTPSまたはlocalhost必須）', 'err');
+      msg('上のテキストボックスを長押し→「ペースト」してから登録ボタンを押してください', 'err');
     }
   }
 

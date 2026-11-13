@@ -97,6 +97,19 @@ export default function DeliveryNote({ onJobUpdated }) {
     } catch (e) { console.error(e); }
   }
 
+  function resolveClinicName(jobClinic, clinicList) {
+    const exact = clinicList.find(c => c.name === jobClinic);
+    if (exact) return exact.name;
+    // スペース（全角・半角）を除去して比較
+    const normalize = s => s.replace(/[\s　]/g, '');
+    const normJob = normalize(jobClinic);
+    const fuzzy = clinicList.find(c => {
+      const normC = normalize(c.name);
+      return normC.includes(normJob) || normJob.includes(normC);
+    });
+    return fuzzy ? fuzzy.name : jobClinic;
+  }
+
   async function handleDateChange(date) {
     setSelectedDate(date);
     if (!date) return;
@@ -110,8 +123,10 @@ export default function DeliveryNote({ onJobUpdated }) {
 
       const grouped = {};
       for (const job of jobs) {
-        if (!grouped[job.clinic]) grouped[job.clinic] = [];
-        grouped[job.clinic].push(job);
+        const resolved = resolveClinicName(job.clinic.trim(), clinics);
+        const key = resolved.replace(/\s+/g, ' ');
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push({ ...job, clinic: resolved });
       }
       setGroupedJobs(grouped);
       setScreen('patients');
@@ -121,12 +136,15 @@ export default function DeliveryNote({ onJobUpdated }) {
   }
 
   function handleSelectPatient(job) {
-    const clinic = clinics.find(c => c.name === job.clinic);
-    const existingNote = savedNotes.find(
-      n => n.patientName === job.patient && n.clinicName === job.clinic
-    );
+    const resolved = resolveClinicName(job.clinic, clinics);
+    const clinic = clinics.find(c => c.name === resolved);
+    const correctedJob = resolved !== job.clinic ? { ...job, clinic: resolved } : job;
+    const clinicName = resolved;
+    // job_idで先に検索、なければ患者名で検索
+    const existingNote = savedNotes.find(n => n.jobId === correctedJob.id && n.clinicName === clinicName)
+      || savedNotes.find(n => n.patientName === correctedJob.patient && n.clinicName === clinicName);
     setFormData({
-      job,
+      job: correctedJob,
       clinicId:     clinic?.id || '',
       deliveryDate: selectedDate,
       existingNote: existingNote || null,
@@ -184,7 +202,19 @@ export default function DeliveryNote({ onJobUpdated }) {
       setScreen('date');
       setFormData(null);
     } else {
-      await loadSavedNotesForDate(selectedDate);
+      // 保存後に患者一覧（groupedJobs）も再読み込みして名前変更を反映
+      const [jobs, allNotes] = await Promise.all([
+        fetch(`/api/jobs?${new URLSearchParams({ date: selectedDate })}`).then(r => r.json()),
+        fetchDeliveryNotes(),
+      ]);
+      setSavedNotes(allNotes.filter(n => n.deliveryDate === selectedDate));
+      const grouped = {};
+      for (const job of jobs) {
+        const key = job.clinic.trim().replace(/\s+/g, ' ');
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(job);
+      }
+      setGroupedJobs(grouped);
       loadNotes();
       setScreen('patients');
       setFormData(null);

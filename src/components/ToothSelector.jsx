@@ -20,7 +20,7 @@ function buildShiki(stateMap) {
     const isRight = q === 0 || q === 2;
     byQuad[q] = quadNums[q]
       .sort((a, b) => isRight ? b.n - a.n : a.n - b.n)
-      .map(({ n, state }) => state === 1 ? CIRCLED[n - 1] : FULLWIDE[n - 1])
+      .map(({ n, state }) => state === 1 ? CIRCLED[n - 1] : state === 2 ? CIRCLED[n - 1] + CIRCLED[n - 1] : FULLWIDE[n - 1])
       .join('');
   }
   if (!byQuad[0] && !byQuad[1] && !byQuad[2] && !byQuad[3]) return '';
@@ -33,27 +33,28 @@ export function parseCross(shiki) {
   return { ur: q0 || '', ul: q1 || '', lr: q2 || '', ll: q3 || '' };
 }
 
-export function CrossDiagram({ shiki, cellSize = 18, fontSize = '9pt', borderColor = '#555' }) {
+export function CrossDiagram({ shiki, cellSize = 18, fontSize = '9pt', borderColor = '#555', fillParent = false }) {
   const cross = parseCross(shiki);
   if (!cross) return <span>{shiki || ''}</span>;
   const hasAny = cross.ur || cross.ul || cross.lr || cross.ll;
   if (!hasAny) return null;
-  const tdBase = {
-    padding: '1px 2px',
-    minWidth: cellSize,
-    lineHeight: 1.2,
-    fontSize,
+  const bdr = `1px solid ${borderColor}`;
+  const base = {
+    height: cellSize, padding: '0 3px', fontSize, lineHeight: 1.2,
+    verticalAlign: 'middle', whiteSpace: 'nowrap',
+    borderTop: 'none', borderLeft: 'none',
   };
+  const tableW = fillParent ? '100%' : cellSize * 3;
   return (
-    <table style={{ borderCollapse: 'collapse', margin: '0 auto' }}>
+    <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: tableW, margin: '0 auto' }}>
       <tbody>
         <tr>
-          <td style={{ ...tdBase, borderRight: `1px solid ${borderColor}`, borderBottom: `1px solid ${borderColor}`, textAlign: 'right' }}>{cross.ur}</td>
-          <td style={{ ...tdBase, borderBottom: `1px solid ${borderColor}`, textAlign: 'left' }}>{cross.ul}</td>
+          <td style={{ ...base, borderRight: bdr, borderBottom: bdr, textAlign: 'right' }}>{cross.ur}</td>
+          <td style={{ ...base, borderRight: 'none', borderBottom: bdr, textAlign: 'left' }}>{cross.ul}</td>
         </tr>
         <tr>
-          <td style={{ ...tdBase, borderRight: `1px solid ${borderColor}`, textAlign: 'right' }}>{cross.lr}</td>
-          <td style={{ ...tdBase, textAlign: 'left' }}>{cross.ll}</td>
+          <td style={{ ...base, borderRight: bdr, borderBottom: 'none', textAlign: 'right' }}>{cross.lr}</td>
+          <td style={{ ...base, borderRight: 'none', borderBottom: 'none', textAlign: 'left' }}>{cross.ll}</td>
         </tr>
       </tbody>
     </table>
@@ -74,8 +75,8 @@ const QUAD_LABELS = ['右上','左上','右下','左下'];
 function ToothButton({ quadrant, num, stateMap, onToggle }) {
   const key   = `${quadrant}-${num}`;
   const state = stateMap.get(key) ?? 0;
-  const label = state === 1 ? CIRCLED[num-1] : state === 2 ? FULLWIDE[num-1] : String(num);
-  const bg    = state === 1 ? BLUE : state === 2 ? GREEN : '#f0f0f0';
+  const label = state === 1 ? CIRCLED[num-1] : state === 2 ? CIRCLED[num-1]+'²' : state === 3 ? FULLWIDE[num-1] : String(num);
+  const bg    = state === 1 ? BLUE : state === 2 ? '#e65100' : state === 3 ? GREEN : '#f0f0f0';
   const color = state > 0 ? '#fff' : '#666';
   return (
     <button type="button" onClick={() => onToggle(key)}
@@ -97,10 +98,11 @@ function ToothButton({ quadrant, num, stateMap, onToggle }) {
 export default function ToothSelector({ value, onChange }) {
   const [stateMap, setStateMap] = useState(new Map());
 
+  // 0=off → 1=⑥ → 2=⑥⑥ → 3=普通数字 → 0=off
   function toggle(key) {
     setStateMap(prev => {
       const next = new Map(prev);
-      next.set(key, ((next.get(key) ?? 0) + 1) % 3);
+      next.set(key, ((next.get(key) ?? 0) + 1) % 4);
       onChange(buildShiki(next));
       return next;
     });
@@ -136,8 +138,9 @@ export default function ToothSelector({ value, onChange }) {
       {/* 凡例 */}
       <div style={{ fontSize: 10, color: '#666', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <span><span style={{ background: BLUE,  color:'#fff', padding:'0 3px', borderRadius:2 }}>①</span> 1回：丸数字</span>
-        <span><span style={{ background: GREEN, color:'#fff', padding:'0 3px', borderRadius:2 }}>１</span> 2回：普通数字</span>
-        <span style={{ color:'#aaa' }}>3回で解除</span>
+        <span><span style={{ background: '#e65100', color:'#fff', padding:'0 3px', borderRadius:2 }}>①²</span> 2回：丸×2</span>
+        <span><span style={{ background: GREEN, color:'#fff', padding:'0 3px', borderRadius:2 }}>１</span> 3回：普通数字</span>
+        <span style={{ color:'#aaa' }}>4回で解除</span>
       </div>
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -165,7 +168,7 @@ export default function ToothSelector({ value, onChange }) {
         <input
           type="text"
           value={shikiValue}
-          onChange={e => onChange(e.target.value)}
+          onChange={e => { setStateMap(new Map()); onChange(e.target.value); }}
           placeholder="自動入力または直接編集"
           className="dn-shiki-input"
           style={{ flex: 1, fontSize: 13 }}

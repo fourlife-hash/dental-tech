@@ -12,7 +12,7 @@ function calcTotals(items) {
   const subtotalMaterial = items.reduce((s, item) => {
     return item.category === '材' ? s + item.unitPrice * item.quantity : s;
   }, 0);
-  const tax   = Math.round((subtotalGiko + subtotalMaterial) * 0.1);
+  const tax   = Math.floor((subtotalGiko + subtotalMaterial) * 0.1);
   const total = subtotalGiko + subtotalMaterial + tax;
   return { subtotalGiko, subtotalMaterial, tax, total };
 }
@@ -81,7 +81,7 @@ export default function DeliveryNoteForm({
     const priceEntry = prices.find(pr => pr.productId === product.id);
     setItems(prev => [...prev, makeItem({
       gikobutsuName: product.name,
-      category:      CAT_MAP[product.category] || '',
+      category:      CAT_MAP[product.category] || (CAT_OPTIONS.includes(product.category) ? product.category : ''),
       unitPrice:     priceEntry?.price || 0,
     })]);
   }
@@ -90,10 +90,17 @@ export default function DeliveryNoteForm({
   function removeItem(id)  { setItems(prev => prev.filter(item => item.id !== id)); }
 
   function updateItem(id, field, rawValue) {
-    const value = (field === 'unitPrice' || field === 'quantity')
-      ? (parseInt(rawValue) || 0)
-      : rawValue;
-    setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+    setItems(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      let value = rawValue;
+      if (field === 'unitPrice') {
+        value = parseInt(rawValue) || 0;
+      } else if (field === 'quantity') {
+        // 区分が「材」の場合は小数点の数量を許可
+        value = item.category === '材' ? (parseFloat(rawValue) || 0) : (parseInt(rawValue) || 0);
+      }
+      return { ...item, [field]: value };
+    }));
   }
 
   const baseCalc     = calcTotals(items);
@@ -114,6 +121,7 @@ export default function DeliveryNoteForm({
         deliveryDate: date,
         patientName,
         jobId:       job?.id || null,
+        originalPatientName: job?.patient || null, // 元の患者名（名前変更時の古い納品書検索用）
         shiki,
         rows: items.map(item => ({
           gikobutsuName: item.gikobutsuName,
@@ -250,7 +258,8 @@ export default function DeliveryNoteForm({
                       value={item.quantity}
                       onChange={e => updateItem(item.id, 'quantity', e.target.value)}
                       className="dn-qty"
-                      min="1"
+                      min={item.category === '材' ? '0' : '1'}
+                      step={item.category === '材' && !/CAD|ブロック/i.test(item.gikobutsuName || '') ? '0.1' : '1'}
                     />
                   </td>
                   <td className="dn-amount">

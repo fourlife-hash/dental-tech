@@ -47,30 +47,58 @@ export default function Invoice() {
       .then(r => r.json()).then(setIssuedList);
   }, [subTab, listClinicId]);
 
-  // 医院・年月変更時：前月の請求履歴を取得して自動セット
+  // 医院・年月変更時：前月の請求履歴 → 年間売上の順で前回御請求額をセット
   useEffect(() => {
-    if (!clinicId) return;
+    if (!clinicId || clinics.length === 0) return;
     let prevYear = year, prevMonth = month - 1;
     if (prevMonth === 0) { prevYear--; prevMonth = 12; }
 
     setHistoryLoading(true);
     setInvoiceData(null);
     setReprintData(null);
-    fetch(`/api/invoice-history?clinicId=${clinicId}&year=${prevYear}&month=${prevMonth}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.total_amount != null) {
-          setIsFirstTime(false);
-          setPrevCharge(String(data.total_amount));
-        } else {
-          setIsFirstTime(true);
-          setPrevCharge('');
+
+    const currentClinicData = clinics.find(c => c.id === clinicId);
+    const clinicName = currentClinicData?.name;
+    if (currentClinicData?.monthEnd !== undefined) setMonthEnd(currentClinicData.monthEnd);
+
+    (async () => {
+      try {
+        let prevAmount = 0;
+
+        // まず invoice_history から前月の請求額を取得
+        try {
+          const hist = await fetch(`/api/invoice-history?clinicId=${clinicId}&year=${prevYear}&month=${prevMonth}`).then(r => r.json());
+          if (hist && hist.total_amount > 0) {
+            prevAmount = hist.total_amount;
+          }
+        } catch {}
+
+        // invoice_history になければ年間売上から取得
+        if (prevAmount === 0 && clinicName) {
+          const MANUAL_MONTHS = 4;
+          if (prevMonth <= MANUAL_MONTHS) {
+            try {
+              const manual = JSON.parse(localStorage.getItem(`salesManual_${prevYear}`)) || {};
+              prevAmount = (manual[clinicName] || [])[prevMonth - 1] || 0;
+            } catch {}
+          } else {
+            try {
+              const sales = await fetch(`/api/sales/annual?year=${prevYear}`).then(r => r.json());
+              const clinic = sales.clinics?.find(c => c.name === clinicName);
+              prevAmount = clinic ? (clinic.months[prevMonth - 1] || 0) : 0;
+            } catch {}
+          }
         }
-        setPrevPayment('');
+
+        setPrevCharge(prevAmount > 0 ? String(prevAmount) : '');
+        setPrevPayment(prevAmount > 0 ? String(prevAmount) : '');
+        setIsFirstTime(prevAmount === 0);
         setAdjustment('');
-      })
-      .finally(() => setHistoryLoading(false));
-  }, [clinicId, year, month]);
+      } finally {
+        setHistoryLoading(false);
+      }
+    })();
+  }, [clinicId, year, month, clinics]);
 
   const prevChargeNum  = parseInt(prevCharge)  || 0;
   const prevPaymentNum = parseInt(prevPayment) || 0;
@@ -108,6 +136,8 @@ export default function Invoice() {
           notesSnapshot: data.notes,
           grandTotal:    totalRequest,
           bankInfo:      bk,
+          periodTo:      data.dateTo,
+          periodFrom:    data.dateFrom,
         }),
       });
     } catch (e) {
@@ -229,7 +259,7 @@ export default function Invoice() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontWeight: 'bold', color: '#555' }}>医院情報（印刷に反映）</span>
                 {!editClinic && (
-                  <button onClick={() => setEditClinic({ postalCode: currentClinic.postalCode || '', address: currentClinic.address || '', bankInfo: currentClinic.bankInfo || '' })}
+                  <button onClick={() => setEditClinic({ postalCode: currentClinic.postalCode || '', address: currentClinic.address || '', bankInfo: currentClinic.bankInfo || '', monthEnd: currentClinic.monthEnd || false })}
                     style={{ fontSize: 12, padding: '3px 10px', border: '1px solid #ccc', borderRadius: 5, cursor: 'pointer', background: '#fff' }}>編集</button>
                 )}
               </div>
@@ -246,6 +276,10 @@ export default function Invoice() {
                   <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, gap: 2 }}>
                     銀行口座
                     <input value={editClinic.bankInfo} onChange={e => setEditClinic(p => ({ ...p, bankInfo: e.target.value }))} style={{ ...inputSt, width: 280 }} />
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', alignSelf: 'flex-end', paddingBottom: 4 }}>
+                    <input type="checkbox" checked={editClinic.monthEnd} onChange={e => setEditClinic(p => ({ ...p, monthEnd: e.target.checked }))} style={{ width: 16, height: 16 }} />
+                    月末締め（年間売上に反映）
                   </label>
                   <button onClick={handleSaveClinicInfo} disabled={saving} style={{ padding: '5px 14px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>保存</button>
                   <button onClick={() => setEditClinic(null)} style={{ padding: '5px 10px', background: '#eee', border: '1px solid #ccc', borderRadius: 6, cursor: 'pointer' }}>取消</button>
@@ -274,9 +308,8 @@ export default function Invoice() {
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     前回御請求額(円)
                     <input type="number" value={prevCharge} onChange={e => setPrevCharge(e.target.value)}
-                      style={{ ...inputSt, width: 130, background: !isFirstTime ? '#e8f5e9' : '#fff' }}
-                      readOnly={!isFirstTime} />
-                    {!isFirstTime && <span style={{ fontSize: 10, color: '#27ae60' }}>前月履歴から自動入力</span>}
+                      style={{ ...inputSt, width: 130, background: prevCharge ? '#e8f5e9' : '#fff' }} />
+                    {prevCharge && <span style={{ fontSize: 10, color: '#27ae60' }}>年間売上から自動入力</span>}
                   </label>
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     前回御入金額(円)

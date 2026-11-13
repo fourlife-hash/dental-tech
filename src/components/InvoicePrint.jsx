@@ -4,13 +4,7 @@ const GREEN  = '#4CAF50';
 const BORDER = '1px solid #b8dba0';
 
 function fmt(n)   { return (n ?? 0).toLocaleString(); }
-function fmt0(n)  { return n ? (n).toLocaleString() : ''; }  // 0は空白
-// Q:形式の歯式を読みやすい文字列に変換（請求書用）
-function shikiToText(shiki) {
-  if (!shiki) return '';
-  if (shiki.startsWith('Q:')) return shiki.slice(2).split(',').join('').replace(/\s/g, '') || '';
-  return shiki;
-}
+function fmt0(n)  { return n ? (n).toLocaleString() : ''; }
 function fmtDate(str) {
   if (!str) return '';
   const d = new Date(str + 'T00:00:00');
@@ -33,22 +27,34 @@ const TD = (extra = {}) => ({
   ...extra,
 });
 
+const PRINT_CSS = `
+  @page { size: A4 portrait; margin: 15mm; }
+  html, body {
+    font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;
+    font-size: 11px; color: #222;
+    margin: 0; padding: 0;
+    width: 100%;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  table { border-collapse: collapse; width: 100%; }
+  th { background: #4CAF50; color: #fff; font-weight: bold;
+       border: 1px solid #b8dba0; padding: 5px 7px; font-size: 11px; }
+  td { border: 1px solid #b8dba0; padding: 7px 8px; font-size: 11px;
+       line-height: 1.6; word-break: break-all; overflow-wrap: anywhere; }
+`;
+
 export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adjustment, carryOver, bankInfo, totalBaseUp }) {
   const printRef = useRef();
 
   function handlePrint() {
     const el = printRef.current;
     if (!el) return;
-    const win = window.open('', '_blank', 'width=900,height=1200');
+    const win = window.open('', '_blank', 'width=794,height=1123');
     win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>
-        @page { size: A4 portrait; margin: 15mm; }
-        body { font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif; font-size: 11px; color: #222; }
-        table { border-collapse: collapse; width: 100%; }
-        th { background: #4CAF50; color: #fff; font-weight: bold; border: 1px solid #b8dba0; padding: 5px 7px; font-size: 11px; }
-        td { border: 1px solid #b8dba0; padding: 7px 8px; font-size: 11px; line-height: 1.6; word-break: break-all; overflow-wrap: anywhere; }
-        @media print { @page { size: A4 portrait; margin: 15mm; } }
-      </style></head><body>` + el.innerHTML + `</body></html>`);
+      <title>請求書</title>
+      <style>${PRINT_CSS}</style>
+    </head><body>${el.innerHTML}</body></html>`);
     win.document.close();
     win.focus();
     setTimeout(() => { win.print(); win.close(); }, 400);
@@ -56,9 +62,8 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
 
   if (!invoiceData) return null;
   const { clinic, year, month, notes, totalGiko, totalMaterial, totalTax, totalAmount } = invoiceData;
-  const baseUp          = totalBaseUp ?? invoiceData.totalBaseUp ?? 0;
+  const baseUp = totalBaseUp ?? invoiceData.totalBaseUp ?? 0;
   const totalBaseUpCount = notes.reduce((s, n) => s + (n.baseUpCount || 0), 0);
-  const showBaseUp = true; // 常に表示（0円でも記載）
   const grandTotal = totalAmount + carryOver;
 
   const now = new Date();
@@ -70,23 +75,15 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
   }, 0);
   const totalGikoJihi = totalGiko - totalGikoHoken;
 
-  // 明細テーブルの列定義（ベースアップ支援料は金額があるときのみ）
-  const detailCols  = showBaseUp
-    ? ['納品No','指示書No','患者名','納品日','（技工）','（材料）','ﾍﾞｰｽｱｯﾌﾟ支援料','消費税','納品額']
-    : ['納品No','指示書No','患者名','納品日','（技工）','（材料）','消費税','納品額'];
-  const colWidths = showBaseUp
-    ? ['9%','9%','19%','11%','11%','9%','10%','9%','13%']
-    : ['10%','10%','22%','12%','13%','12%','11%','10%'];
-
   const printContent = (
     <div style={{ fontFamily: "'Hiragino Kaku Gothic ProN','Meiryo',sans-serif", fontSize: 11, color: '#222' }}>
 
       {/* ─── ヘッダー行：タイトル（左）+ 請求日（右） ─── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }}>
         <div style={{
-          fontSize: 30, fontWeight: 'bold', color: GREEN,
-          borderTop: `1.5px solid ${GREEN}`,
-          borderBottom: `2.5px solid ${GREEN}`,
+          fontSize: 30, fontWeight: 'bold', color: '#222',
+          borderTop: '1.5px solid #222',
+          borderBottom: '2.5px solid #222',
           padding: '5px 6px',
           letterSpacing: '0.45em',
         }}>
@@ -107,19 +104,19 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
           {clinic.name}　様
         </div>
         <div style={{ textAlign: 'right', fontSize: 11, lineHeight: 2 }}>
-          <div style={{ fontWeight: 'bold', color: GREEN, fontSize: 12 }}>デンタル　テック　アライズ</div>
+          <div style={{ fontWeight: 'bold', color: '#222', fontSize: 12 }}>デンタル　テック　アライズ</div>
           <div>〒601-8472</div>
           <div>京都市南区八条坊門町7-6</div>
           <div>インボイス登録番号　T3-8103-2874-8548</div>
         </div>
       </div>
 
-      {/* ─── 今回御請求額（ラベル + 金額 横並び） ─── */}
+      {/* ─── 今回御請求額 ─── */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 20, marginBottom: 4 }}>
         <span style={{ fontSize: 13, color: '#333' }}>今回御請求額</span>
         <span style={{
-          fontSize: 36, fontWeight: 'bold', color: GREEN,
-          borderBottom: `2px solid ${GREEN}`,
+          fontSize: 36, fontWeight: 'bold', color: '#222',
+          borderBottom: '2px solid #222',
           paddingBottom: 2,
         }}>
           ¥{fmt(grandTotal)}
@@ -129,7 +126,7 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
         {year}年{month}月分技工代金を御請求申し上げます。
       </div>
 
-      {/* ─── 集計サマリーテーブル（¥なし・PDF準拠） ─── */}
+      {/* ─── 集計サマリーテーブル ─── */}
       <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: 6 }}>
         <thead>
           <tr>
@@ -152,49 +149,51 @@ export default function InvoicePrint({ invoiceData, prevCharge, prevPayment, adj
         </tbody>
       </table>
 
-      {/* ─── 技工内訳 ─── */}
-      <div style={{ fontSize: 11, color: '#333', marginBottom: showBaseUp ? 4 : 14 }}>
+      {/* ─── 技工内訳 + ベースアップ ─── */}
+      <div style={{ fontSize: 11, color: '#333', marginBottom: 4 }}>
         技工内訳　（保険）　{fmt(totalGikoHoken)}　　（自費）　{fmt(totalGikoJihi)}
       </div>
-      {showBaseUp && (
-        <div style={{ fontSize: 11, color: '#333', marginBottom: 14 }}>
-          ベースアップ支援料　{totalBaseUpCount}個　¥{fmt(baseUp)}
-        </div>
-      )}
+      <div style={{ fontSize: 11, color: '#333', marginBottom: 14 }}>
+        ベースアップ支援料　{totalBaseUpCount}個　¥{fmt(baseUp)}
+      </div>
 
-      {/* ─── 明細テーブル（患者名→納品日 順、¥なし） ─── */}
+      {/* ─── 明細テーブル（サンプル準拠：納品No→指示書No→納品日→患者名） ─── */}
       <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: 18, tableLayout: 'fixed' }}>
         <colgroup>
-          {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
+          {['9%','9%','11%','19%','11%','11%','9%','10%','11%'].map((w, i) => <col key={i} style={{ width: w }} />)}
         </colgroup>
         <thead>
           <tr>
-            {detailCols.map(h => <th key={h} style={TH()}>{h}</th>)}
+            {['納品No','指示書No','納品日','患者名','（技工）','（材料）','ﾍﾞｰｽｱｯﾌﾟ支援料','消費税','納品額'].map(h =>
+              <th key={h} style={TH()}>{h}</th>
+            )}
           </tr>
         </thead>
         <tbody>
           {notes.length === 0 && (
-            <tr><td colSpan={detailCols.length} style={TD({ textAlign: 'center', color: '#888' })}>対象期間の納品書がありません</td></tr>
+            <tr><td colSpan={9} style={TD({ textAlign: 'center', color: '#888' })}>対象期間の納品書がありません</td></tr>
           )}
           {notes.map(n => (
             <tr key={n.id}>
               <td style={TD({ textAlign: 'center' })}>{n.deliveryNo}</td>
-              <td style={TD({ textAlign: 'center' })}>{shikiToText(n.shiki)}</td>
-              <td style={TD()}>{n.patientName}</td>
+              <td style={TD({ textAlign: 'center' })}></td>
               <td style={TD({ textAlign: 'center' })}>{fmtDate(n.deliveryDate)}</td>
+              <td style={TD()}>{n.patientName}</td>
               <td style={TD({ textAlign: 'right' })}>{fmt0(n.subtotalGiko)}</td>
               <td style={TD({ textAlign: 'right' })}>{fmt0(n.subtotalMaterial)}</td>
-              {showBaseUp && <td style={TD({ textAlign: 'right' })}>{n.baseUpSupport > 0 ? fmt(n.baseUpSupport) : ''}</td>}
+              <td style={TD({ textAlign: 'right' })}>{n.baseUpSupport > 0 ? fmt(n.baseUpSupport) : ''}</td>
               <td style={TD({ textAlign: 'right' })}>{fmt(n.tax)}</td>
               <td style={TD({ textAlign: 'right', fontWeight: 'bold' })}>{fmt(n.total)}</td>
             </tr>
           ))}
-          {/* 合計行 */}
+          {/* 合計行：保険計／自費計／技工計 */}
           <tr style={{ background: '#f0f9f4' }}>
-            <td colSpan={4} style={TD({ textAlign: 'right', fontWeight: 'bold', background: '#f0f9f4' })}>合　計</td>
+            <td colSpan={4} style={TD({ textAlign: 'right', fontWeight: 'bold', background: '#f0f9f4', fontSize: 10 })}>
+              保険計　{fmt(totalGikoHoken)}　　自費計　{fmt(totalGikoJihi)}　　技工計　{fmt(totalGiko)}
+            </td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold', background: '#f0f9f4' })}>{fmt(totalGiko)}</td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold', background: '#f0f9f4' })}>{fmt0(totalMaterial)}</td>
-            {showBaseUp && <td style={TD({ textAlign: 'right', fontWeight: 'bold', background: '#f0f9f4' })}>{fmt(baseUp)}</td>}
+            <td style={TD({ textAlign: 'right', fontWeight: 'bold', background: '#f0f9f4' })}>{fmt(baseUp)}</td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold', background: '#f0f9f4' })}>{fmt(totalTax)}</td>
             <td style={TD({ textAlign: 'right', fontWeight: 'bold', background: '#f0f9f4' })}>{fmt(totalAmount)}</td>
           </tr>
