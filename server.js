@@ -743,14 +743,12 @@ app.get('/api/jobs', async (req, res) => {
 
     const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
     const { rows } = await pool.query(
-      `SELECT * FROM (
-         SELECT DISTINCT ON (TRIM(clinic), TRIM(patient), set_date, set_time) *
-         FROM jobs${where}
-         ORDER BY TRIM(clinic), TRIM(patient), set_date, set_time, created_at DESC
-       ) deduped
-       ORDER BY created_at DESC`,
+      `SELECT DISTINCT ON (TRIM(clinic), TRIM(patient), set_date, set_time) *
+       FROM jobs${where}
+       ORDER BY TRIM(clinic), TRIM(patient), set_date, set_time, created_at DESC`,
       params
     );
+    rows.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
     res.json(rows.map(jobFromRow));
   } catch (err) {
     console.error(err);
