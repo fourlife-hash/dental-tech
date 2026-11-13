@@ -980,10 +980,10 @@ app.get('/api/sales/annual', async (req, res) => {
     const year = parseInt(req.query.year) || new Date().getFullYear();
     const { rows } = await pool.query(
       `SELECT clinic_name,
-              EXTRACT(MONTH FROM delivery_date::date)::int AS month,
+              EXTRACT(MONTH FROM (delivery_date::date + INTERVAL '11 days'))::int AS month,
               SUM(total)::int AS total
        FROM delivery_notes
-       WHERE EXTRACT(YEAR FROM delivery_date::date) = $1
+       WHERE delivery_date >= ($1-1)||'-12-21' AND delivery_date <= $1||'-12-31'
        GROUP BY clinic_name, month
        ORDER BY clinic_name, month`,
       [year]
