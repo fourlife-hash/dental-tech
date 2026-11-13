@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -730,15 +730,15 @@ app.get('/api/jobs', async (req, res) => {
 
     if (clinic) {
       params.push(clinic);
-      conditions.push(`clinic = ${params.length}`);
+      conditions.push(`clinic = $${params.length}`);
     }
     if (date) {
       params.push(date);
-      conditions.push(`set_date::date = ${params.length}`);
+      conditions.push(`set_date::date = $${params.length}`);
     }
     if (done !== undefined) {
       params.push(done === 'true');
-      conditions.push(`done = ${params.length}`);
+      conditions.push(`done = $${params.length}`);
     }
 
     const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
