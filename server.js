@@ -948,18 +948,32 @@ app.get('/api/sales-manual', async (req, res) => {
   try {
     const year = parseInt(req.query.year) || new Date().getFullYear();
     const map = {};
-    const { rows } = await pool.query('SELECT clinic_name, month, amount FROM sales_manual WHERE year = $1', [year]);
-    for (const r of rows) {
-      if (!map[r.clinic_name]) map[r.clinic_name] = Array(12).fill(0);
-      if (r.month >= 1 && r.month <= 12) map[r.clinic_name][r.month - 1] = parseInt(r.amount) || 0;
+    const { rows: tables } = await pool.query(
+      "SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name IN ('clinic_name', 'clinic') GROUP BY table_name"
+    );
+    for (const t of tables) {
+      const tName = t.table_name;
+      if (['delivery_notes', 'metal_stocks', 'clinics', 'jobs'].includes(tName)) continue;
+      try {
+        const colsRes = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name = $1", [tName]);
+        const cols = colsRes.rows.map(r => r.column_name);
+        const cCol = cols.includes('clinic_name') ? 'clinic_name' : (cols.includes('clinic') ? 'clinic' : null);
+        const yCol = cols.includes('year') ? 'year' : null;
+        const mCol = cols.includes('month') ? 'month' : null;
+        const aCol = cols.includes('amount') ? 'amount' : (cols.includes('total') ? 'total' : (cols.includes('sales') ? 'sales' : null));
+        if (cCol && yCol && mCol && aCol) {
+          const data = await pool.query(`SELECT ${cCol} AS c, ${mCol} AS m, ${aCol} AS a FROM "${tName}" WHERE ${yCol} = $1`, [year]);
+          for (const r of data.rows) {
+            if (!map[r.c]) map[r.c] = Array(12).fill(0);
+            const mIdx = parseInt(r.m) - 1;
+            const val = parseInt(r.a) || 0;
+            if (mIdx >= 0 && mIdx < 12 && val > 0 && map[r.c][mIdx] === 0) {
+              map[r.c][mIdx] = val;
+            }
+          }
+        }
+      } catch (_) {}
     }
-    try {
-      const alt = await pool.query('SELECT clinic_name, month, amount FROM manual_sales WHERE year = $1', [year]);
-      for (const r of alt.rows) {
-        if (!map[r.clinic_name]) map[r.clinic_name] = Array(12).fill(0);
-        if (r.month >= 1 && r.month <= 12 && map[r.clinic_name][r.month - 1] === 0) map[r.clinic_name][r.month - 1] = parseInt(r.amount) || 0;
-      }
-    } catch (_) {}
     res.json(map);
   } catch (err) { res.json({}); }
 });
