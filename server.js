@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -585,7 +585,15 @@ async function initDb() {
   `);
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS invoice_history (
+    CREATE TABLE IF NOT EXISTS sales_manual (
+    id SERIAL PRIMARY KEY,
+    year INTEGER NOT NULL,
+    clinic_name TEXT NOT NULL,
+    month INTEGER NOT NULL,
+    amount INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (year, clinic_name, month)
+  );
+  CREATE TABLE IF NOT EXISTS invoice_history (
       id            SERIAL PRIMARY KEY,
       clinic_id     TEXT,
       year          INTEGER,
@@ -735,7 +743,7 @@ app.get('/api/jobs', async (req, res) => {
 
     const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
     const { rows } = await pool.query(
-      `SELECT * FROM jobs${where} ORDER BY created_at DESC`,
+      `SELECT * FROM (SELECT DISTINCT ON (clinic, patient, set_date, shiki, gikobutsu) * FROM jobs${where} ORDER BY clinic, patient, set_date, shiki, gikobutsu, created_at DESC) d ORDER BY created_at DESC`,
       params
     );
     res.json(rows.map(jobFromRow));
@@ -935,6 +943,37 @@ app.get('/api/delivery-notes/search', async (req, res) => {
 });
 
 // ─── 年間売上 API ─────────────────────────────────────────────────────────────
+
+app.get('/api/sales-manual', async (req, res) => {
+  try {
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const map = {};
+    const { rows } = await pool.query('SELECT clinic_name, month, amount FROM sales_manual WHERE year = $1', [year]);
+    for (const r of rows) {
+      if (!map[r.clinic_name]) map[r.clinic_name] = Array(12).fill(0);
+      if (r.month >= 1 && r.month <= 12) map[r.clinic_name][r.month - 1] = parseInt(r.amount) || 0;
+    }
+    try {
+      const alt = await pool.query('SELECT clinic_name, month, amount FROM manual_sales WHERE year = $1', [year]);
+      for (const r of alt.rows) {
+        if (!map[r.clinic_name]) map[r.clinic_name] = Array(12).fill(0);
+        if (r.month >= 1 && r.month <= 12 && map[r.clinic_name][r.month - 1] === 0) map[r.clinic_name][r.month - 1] = parseInt(r.amount) || 0;
+      }
+    } catch (_) {}
+    res.json(map);
+  } catch (err) { res.json({}); }
+});
+
+app.post('/api/sales-manual', async (req, res) => {
+  try {
+    const { year, clinicName, month, amount } = req.body;
+    await pool.query(
+      'INSERT INTO sales_manual (year, clinic_name, month, amount) VALUES ($1, $2, $3, $4) ON CONFLICT (year, clinic_name, month) DO UPDATE SET amount = EXCLUDED.amount',
+      [parseInt(year), clinicName, parseInt(month), parseInt(amount) || 0]
+    );
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'DBエラー' }); }
+});
 
 app.get('/api/sales/annual', async (req, res) => {
   try {
@@ -1613,3 +1652,4 @@ app.listen(PORT, () => console.log(`APIサーバー起動: http://localhost:${PO
 initDb()
   .then(() => console.log('DB初期化完了'))
   .catch(err => { console.error('DB初期化エラー:', err); process.exit(1); });
+
