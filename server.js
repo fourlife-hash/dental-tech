@@ -1109,10 +1109,10 @@ app.post('/api/delivery-notes', async (req, res) => {
     const { rows: saved } = await pool.query('SELECT * FROM delivery_notes WHERE id=$1', [id]);
     await syncMetalStocksForNote(id, deliveryDate, clinicName, paraGram || 0, miroGram || 0);
     // 対応する指示書の医院名・患者名も更新
-    if (jobId) {
+    const targetJobId = req.body.jobId || result.rows[0].job_id; if (targetJobId) {
       await pool.query(
         'UPDATE jobs SET clinic=$1, patient=$2 WHERE id=$3',
-        [clinicName, patientName || '', jobId]
+        [clinicName, patientName || '', targetJobId]
       );
     }
     res.status(201).json(deliveryNoteFromRow(saved[0]));
@@ -1151,8 +1151,8 @@ app.put('/api/delivery-notes/:id', async (req, res) => {
     );
     if (result.rowCount === 0) return res.status(404).json({ error: '納品書が見つかりません' });
     await syncMetalStocksForNote(id, deliveryDate, clinicName, paraGram || 0, miroGram || 0);
-    if (jobId) {
-      await pool.query('UPDATE jobs SET clinic=$1, patient=$2 WHERE id=$3', [clinicName, patientName || '', jobId]);
+    const targetJobId = req.body.jobId || result.rows[0].job_id; if (targetJobId) {
+      await pool.query('UPDATE jobs SET clinic=$1, patient=$2 WHERE id=$3', [clinicName, patientName || '', targetJobId]);
     }
     res.json(deliveryNoteFromRow(result.rows[0]));
   } catch (err) {
